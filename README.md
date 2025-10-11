@@ -37,21 +37,23 @@ MindFlow 是一个系统级的 macOS 应用程序，能够在任何文本输入�
 brew install --cask mindflow
 ```
 
+**详细步骤**: 查看 [Quick Start Guide](./docs/guides/quick-start.md)
+
 ### 配置
 
-1. **启动 MindFlow**  
+1. **启动 MindFlow**
    点击菜单栏中的 🎤 图标
 
-2. **配置 API 密钥**  
+2. **配置 API 密钥**
    - 点击菜单栏图标 -> 设置
    - 输入你的 OpenAI API Key
    - （可选）输入 ElevenLabs API Key
 
-3. **设置权限**  
-   - 首次使用时，系统会请求麦克风和辅助功能权限
+3. **设置权限**
+   - 首次使用时,系统会请求麦克风和辅助功能权限
    - 前往系统设置 -> 隐私与安全性授予相应权限
 
-4. **自定义快捷键**（可选）  
+4. **自定义快捷键**（可选）
    - 默认快捷键：`⌘ Shift V`
    - 可在设置中自定义
 
@@ -88,20 +90,18 @@ brew install --cask mindflow
 
 ## 🛠 开发
 
-本项目目前处于**规划阶段**。
+### 📚 文档
 
-### 查看设计文档
+**完整文档索引**: [Documentation](./docs/README.md)
 
-详细的设计计划请参考：[DESIGN_PLAN.md](./DESIGN_PLAN.md)
+**快速链接**:
+- [Design Plan](./docs/architecture/design-plan.md) - 系统设计和技术栈
+- [Project Structure](./docs/reference/project-structure.md) - 代码组织
+- [Setup Guide](./docs/guides/setup-guide.md) - 开发环境搭建
+- [API Integration](./docs/reference/api-integration.md) - API 集成详解
+- [Coding Standards](./spec/coding-regulations/) - 编码规范
 
-包含内容：
-- 完整的技术架构设计
-- UI/UX 设计方案
-- API 集成方案
-- 开发路线图（4-6周）
-- 技术实现细节
-
-### 技术栈（计划）
+### 技术栈
 
 - **框架**: SwiftUI + Swift
 - **音频**: AVFoundation
@@ -111,8 +111,6 @@ brew install --cask mindflow
 
 ### 参与开发
 
-欢迎贡献！项目将在 Phase 1 完成后开放贡献。
-
 ```bash
 # 克隆仓库
 git clone https://github.com/yourusername/MindFlow.git
@@ -120,11 +118,9 @@ git clone https://github.com/yourusername/MindFlow.git
 # 用 Xcode 打开项目
 cd MindFlow
 open MindFlow.xcodeproj
-
-# 或者如果使用 Tauri
-npm install
-npm run tauri dev
 ```
+
+查看 [Setup Guide](./docs/guides/setup-guide.md) 获取详细步骤。
 
 ---
 

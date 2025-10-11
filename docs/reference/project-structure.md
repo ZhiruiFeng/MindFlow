@@ -10,9 +10,17 @@
 MindFlow/
 ├── README.md                    # 项目介绍和使用指南
 ├── LICENSE                      # MIT 许可证
-├── DESIGN_PLAN.md              # 详细的设计文档
-├── PROJECT_STRUCTURE.md        # 本文件 - 项目结构说明
 ├── .gitignore                  # Git 忽略文件配置
+│
+├── docs/                        # 文档目录
+│   ├── README.md               # 文档索引
+│   ├── guides/                 # 用户和开发指南
+│   ├── reference/              # 技术参考文档（包含本文件）
+│   ├── architecture/           # 架构和设计文档
+│   └── troubleshooting/        # 问题排查指南
+│
+├── spec/                        # 规范和标准
+│   └── coding-regulations/     # 编码规范
 │
 ├── MindFlow/                   # 主应用代码目录
 │   │

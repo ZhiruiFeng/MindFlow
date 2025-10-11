@@ -186,10 +186,10 @@ open -a Xcode
 
 想要深入了解？查看这些文档：
 
-- **[完整设计文档](DESIGN_PLAN.md)** - 了解整体架构和设计思路
-- **[项目结构说明](PROJECT_STRUCTURE.md)** - 了解代码组织方式
-- **[开发环境搭建](docs/SETUP_GUIDE.md)** - 详细的配置步骤
-- **[API 集成文档](docs/API_INTEGRATION.md)** - API 使用细节和成本估算
+- **[完整设计文档](../architecture/design-plan.md)** - 了解整体架构和设计思路
+- **[项目结构说明](../reference/project-structure.md)** - 了解代码组织方式
+- **[开发环境搭建](./setup-guide.md)** - 详细的配置步骤
+- **[API 集成文档](../reference/api-integration.md)** - API 使用细节和成本估算
 
 ---
 

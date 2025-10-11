@@ -41,13 +41,16 @@
 - ✅ `MindFlow/Info.plist` - 应用配置和权限声明
 - ✅ `.gitignore` - Git 忽略规则
 
-#### 文档文件（5 个）
+#### 文档文件（9 个）
 - ✅ `README.md` - 项目介绍和使用指南
-- ✅ `DESIGN_PLAN.md` - 详细设计文档（700行）
-- ✅ `PROJECT_STRUCTURE.md` - 项目结构说明
-- ✅ `QUICK_START.md` - 5分钟快速开始
-- ✅ `docs/SETUP_GUIDE.md` - 开发环境搭建详细步骤
-- ✅ `docs/API_INTEGRATION.md` - API 集成详解
+- ✅ `docs/architecture/design-plan.md` - 详细设计文档（700行）
+- ✅ `docs/architecture/implementation-summary.md` - 实现总结
+- ✅ `docs/reference/project-structure.md` - 项目结构说明
+- ✅ `docs/reference/api-integration.md` - API 集成详解
+- ✅ `docs/guides/quick-start.md` - 5分钟快速开始
+- ✅ `docs/guides/setup-guide.md` - 开发环境搭建详细步骤
+- ✅ `docs/guides/xcode-setup.md` - Xcode 配置指南
+- ✅ `docs/troubleshooting/` - 问题排查指南
 
 ---
 
@@ -181,24 +184,24 @@ open -a Xcode
 
 ### 详细教程
 
-查看 **[QUICK_START.md](QUICK_START.md)** 获取完整的图文教程。
+查看 **[Quick Start Guide](../guides/quick-start.md)** 获取完整的图文教程。
 
 ---
 
 ## 📚 文档体系
 
 ### 用户文档
-- **[README.md](README.md)** - 给用户看的项目介绍
-- **[QUICK_START.md](QUICK_START.md)** - 5分钟快速上手指南
+- **[README.md](../../README.md)** - 给用户看的项目介绍
+- **[Quick Start](../guides/quick-start.md)** - 5分钟快速上手指南
 
 ### 开发文档
-- **[DESIGN_PLAN.md](DESIGN_PLAN.md)** - 完整的设计方案（架构、UI、技术栈）
-- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - 项目结构和代码组织
-- **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** - 开发环境详细搭建
-- **[docs/API_INTEGRATION.md](docs/API_INTEGRATION.md)** - API 集成和成本分析
+- **[Design Plan](./design-plan.md)** - 完整的设计方案（架构、UI、技术栈）
+- **[Project Structure](../reference/project-structure.md)** - 项目结构和代码组织
+- **[Setup Guide](../guides/setup-guide.md)** - 开发环境详细搭建
+- **[API Integration](../reference/api-integration.md)** - API 集成和成本分析
 
 ### 本文档
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - 实现总结（你正在看的）
+- **[Implementation Summary](./implementation-summary.md)** - 实现总结（你正在看的）
 
 ---
 
