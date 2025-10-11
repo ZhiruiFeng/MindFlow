@@ -309,7 +309,7 @@ class RecordingViewModel: ObservableObject {
     
     private func transcribe(audioURL: URL) {
         state = .transcribing
-        
+
         Task {
             do {
                 let text = try await sttService.transcribe(audioURL: audioURL)

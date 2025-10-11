@@ -16,7 +16,9 @@ class Settings: ObservableObject {
     /// OpenAI API Key
     @Published var openAIKey: String = "" {
         didSet {
-            KeychainManager.shared.save(key: "openai_api_key", value: openAIKey)
+            // Trim whitespace and newlines from the API key
+            let trimmedKey = openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            KeychainManager.shared.save(key: "openai_api_key", value: trimmedKey)
         }
     }
     
@@ -80,8 +82,8 @@ class Settings: ObservableObject {
     
     private init() {
         // 从 Keychain 加载 API Keys
-        self.openAIKey = KeychainManager.shared.get(key: "openai_api_key") ?? ""
-        self.elevenLabsKey = KeychainManager.shared.get(key: "elevenlabs_api_key") ?? ""
+        self.openAIKey = (KeychainManager.shared.get(key: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        self.elevenLabsKey = (KeychainManager.shared.get(key: "elevenlabs_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 从 UserDefaults 加载设置
         let sttProviderRaw = UserDefaults.standard.string(forKey: "stt_provider") ?? STTProvider.openAI.rawValue

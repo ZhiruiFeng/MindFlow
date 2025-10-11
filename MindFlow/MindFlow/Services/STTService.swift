@@ -33,7 +33,7 @@ class STTService {
         guard !settings.openAIKey.isEmpty else {
             throw STTError.missingAPIKey("OpenAI API Key 未配置")
         }
-        
+
         let endpoint = "https://api.openai.com/v1/audio/transcriptions"
 
         // 创建请求
@@ -42,7 +42,9 @@ class STTService {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
+
+        let trimmedKey = settings.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        request.setValue("Bearer \(trimmedKey)", forHTTPHeaderField: "Authorization")
         
         // 创建 multipart/form-data
         let boundary = "Boundary-\(UUID().uuidString)"
@@ -54,12 +56,10 @@ class STTService {
         body.append("--\(boundary)\r\n")
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
         body.append("whisper-1\r\n")
-        
-        // 添加 language 字段（可选，自动检测）
-        body.append("--\(boundary)\r\n")
-        body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n")
-        body.append("zh\r\n")
-        
+
+        // 不指定 language，让 Whisper 自动检测语言
+        // 这样可以支持任何语言的转录
+
         // 添加音频文件
         let audioData = try Data(contentsOf: audioURL)
         body.append("--\(boundary)\r\n")
@@ -72,14 +72,14 @@ class STTService {
         body.append("--\(boundary)--\r\n")
         
         request.httpBody = body
-        
+
         // 发送请求
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw STTError.invalidResponse
         }
-        
+
         guard httpResponse.statusCode == 200 else {
             let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
             throw STTError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")

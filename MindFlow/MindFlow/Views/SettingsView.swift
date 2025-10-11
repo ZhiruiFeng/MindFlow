@@ -10,9 +10,9 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
-    
-    @State private var openAIKeyInput: String = ""
-    @State private var elevenLabsKeyInput: String = ""
+
+    @State private var openAIKeyInput: String = Settings.shared.openAIKey
+    @State private var elevenLabsKeyInput: String = Settings.shared.elevenLabsKey
     @State private var isValidatingOpenAI = false
     @State private var isValidatingElevenLabs = false
     @State private var openAIValidationStatus: ValidationStatus = .none
@@ -51,9 +51,6 @@ struct SettingsView: View {
                             HStack {
                                 SecureField("输入你的 OpenAI API Key", text: $openAIKeyInput)
                                     .textFieldStyle(.roundedBorder)
-                                    .onAppear {
-                                        openAIKeyInput = settings.openAIKey
-                                    }
                                 
                                 Button(action: {
                                     settings.openAIKey = openAIKeyInput
