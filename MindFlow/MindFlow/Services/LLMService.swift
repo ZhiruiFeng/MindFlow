@@ -10,9 +10,11 @@ import Foundation
 /// LLM 文本优化服务
 class LLMService {
     static let shared = LLMService()
-    
-    private let settings = Settings.shared
-    
+
+    private var settings: Settings {
+        return Settings.shared
+    }
+
     private init() {}
     
     // MARK: - Public Methods

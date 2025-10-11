@@ -10,9 +10,11 @@ import Foundation
 /// 语音转文字服务
 class STTService {
     static let shared = STTService()
-    
-    private let settings = Settings.shared
-    
+
+    private var settings: Settings {
+        return Settings.shared
+    }
+
     private init() {}
     
     // MARK: - Public Methods
