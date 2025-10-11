@@ -10,51 +10,46 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
-    var popover: NSPopover?
-    var settingsWindow: NSWindow?
-    var recordingWindow: NSWindow?
-    
+    var mainWindow: NSWindow?
+
     // Managers
     let hotKeyManager = HotKeyManager.shared
     let permissionManager = PermissionManager.shared
     let settings = Settings.shared
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 创建菜单栏图标
         setupMenuBar()
-        
+
         // 注册全局热键
         setupHotKey()
-        
+
         // 检查权限
         checkPermissions()
-        
+
         print("✅ MindFlow 启动成功")
     }
-    
+
     // MARK: - Menu Bar Setup
-    
+
     private func setupMenuBar() {
         // 创建状态栏项
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
+
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "mic.fill", accessibilityDescription: "MindFlow")
-            button.action = #selector(togglePopover)
+            button.action = #selector(toggleMainWindow)
             button.target = self
         }
-        
-        // 创建菜单
+
+        // 创建右键菜单
         let menu = NSMenu()
-        
-        menu.addItem(NSMenuItem(title: "开始录音", action: #selector(startRecording), keyEquivalent: "r"))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "设置...", action: #selector(openSettings), keyEquivalent: ","))
-        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "关于 MindFlow", action: #selector(showAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
-        
-        statusItem?.menu = menu
+
+        // 设置右键菜单
+        statusItem?.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
     
     // MARK: - Hot Key Setup
@@ -64,7 +59,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // cmdKey = 0x0100 (256), shiftKey = 0x0200 (512)
         let modifiers: UInt32 = 0x0100 | 0x0200  // Cmd + Shift
         hotKeyManager.registerHotKey(keyCode: 9, modifiers: modifiers) { [weak self] in
-            self?.startRecording()
+            self?.openMainWindow()
         }
     }
     
@@ -107,73 +102,71 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     // MARK: - Actions
-    
-    @objc private func togglePopover() {
-        if let popover = popover, popover.isShown {
-            popover.close()
+
+    @objc private func toggleMainWindow(_ sender: NSStatusBarButton?) {
+        // 检测鼠标事件类型
+        guard let event = NSApp.currentEvent else {
+            openMainWindow()
+            return
+        }
+
+        if event.type == .rightMouseUp {
+            // 右键：显示菜单
+            if let button = statusItem?.button {
+                let menu = createRightClickMenu()
+                statusItem?.menu = menu
+                button.performClick(nil)
+                statusItem?.menu = nil
+            }
         } else {
-            startRecording()
+            // 左键：打开/关闭主窗口
+            if let window = mainWindow, window.isVisible {
+                window.close()
+            } else {
+                openMainWindow()
+            }
         }
     }
-    
-    @objc func startRecording() {
-        // 关闭已有的录音窗口
-        recordingWindow?.close()
-        
-        // 创建录音视图
-        let contentView = RecordingView()
-        
+
+    private func createRightClickMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "关于 MindFlow", action: #selector(showAbout), keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "退出", action: #selector(quit), keyEquivalent: "q"))
+        return menu
+    }
+
+    @objc func openMainWindow() {
+        // 如果窗口已存在，直接显示并激活
+        if let window = mainWindow {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        // 创建主视图
+        let contentView = MainView()
+
         // 创建托管视图
         let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 450, height: 500)
-        
-        // 创建窗口 - 增加高度以显示所有控件
+        hostingView.frame = NSRect(x: 0, y: 0, width: 500, height: 600)
+
+        // 创建窗口
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 450, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        
-        window.title = "MindFlow - 录音"
+
+        window.title = "MindFlow"
         window.contentView = hostingView
         window.center()
         window.makeKeyAndOrderFront(nil)
-        window.level = .floating
-        window.minSize = NSSize(width: 400, height: 450)  // 设置最小尺寸
-        
-        recordingWindow = window
-        
-        // 激活应用
-        NSApp.activate(ignoringOtherApps: true)
-    }
-    
-    @objc func openSettings() {
-        // 关闭已有的设置窗口
-        settingsWindow?.close()
-        
-        // 创建设置视图
-        let contentView = SettingsView()
-        
-        // 创建托管视图
-        let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 600, height: 700)
-        
-        // 创建窗口
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable],
-            backing: .buffered,
-            defer: false
-        )
-        
-        window.title = "MindFlow - 设置"
-        window.contentView = hostingView
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-        
-        settingsWindow = window
-        
+        window.minSize = NSSize(width: 500, height: 600)
+
+        mainWindow = window
+
         // 激活应用
         NSApp.activate(ignoringOtherApps: true)
     }
