@@ -41,9 +41,12 @@ class LLMService {
         style: OutputStyle
     ) async throws -> String {
         let endpoint = "https://api.openai.com/v1/chat/completions"
-        
+
         // 创建请求
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw LLMError.invalidResponse
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

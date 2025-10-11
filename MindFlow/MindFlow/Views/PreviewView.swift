@@ -224,7 +224,7 @@ struct PreviewView: View {
         ClipboardManager.shared.copy(text: textToPaste)
         
         // 如果有辅助功能权限，自动粘贴
-        if PermissionManager.shared.accessibilityPermissionGranted {
+        if PermissionManager.shared.isAccessibilityPermissionGranted {
             ClipboardManager.shared.paste()
             
             showPastedAlert = true

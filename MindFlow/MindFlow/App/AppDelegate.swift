@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func checkPermissions() {
         Task {
             // 检查麦克风权限
-            if !permissionManager.microphonePermissionGranted {
+            if !permissionManager.isMicrophonePermissionGranted {
                 let granted = await permissionManager.requestMicrophonePermission()
                 if !granted {
                     // 必须在主线程上显示 Alert
@@ -85,7 +85,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             // 检查辅助功能权限
             await MainActor.run {
-                if !permissionManager.accessibilityPermissionGranted {
+                if !permissionManager.isAccessibilityPermissionGranted {
                     // 不强制要求，只提示
                     print("⚠️ 辅助功能权限未授予，自动粘贴功能将不可用")
                 }

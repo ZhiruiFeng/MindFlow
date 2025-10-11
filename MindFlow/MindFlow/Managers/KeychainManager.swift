@@ -8,7 +8,7 @@
 import Foundation
 import Security
 
-/// Keychain 管理器 - 安全存储敏感信息
+/// Keychain Manager - Securely stores sensitive information
 class KeychainManager {
     static let shared = KeychainManager()
     
@@ -18,21 +18,21 @@ class KeychainManager {
     
     // MARK: - Public Methods
     
-    /// 保存数据到 Keychain
+    /// Saves data to Keychain
     /// - Parameters:
-    ///   - key: 键名
-    ///   - value: 要保存的值
-    /// - Returns: 是否保存成功
+    ///   - key: The key name
+    ///   - value: The value to save
+    /// - Returns: Whether the save was successful
     @discardableResult
     func save(key: String, value: String) -> Bool {
         guard let data = value.data(using: .utf8) else {
             return false
         }
         
-        // 删除已存在的项
+        // Delete existing item if present
         delete(key: key)
-        
-        // 创建查询字典
+
+        // Create query dictionary
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -44,17 +44,17 @@ class KeychainManager {
         let status = SecItemAdd(query as CFDictionary, nil)
         
         if status == errSecSuccess {
-            print("✅ Keychain: 成功保存 '\(key)'")
+            print("✅ Keychain: Successfully saved item")
             return true
         } else {
-            print("❌ Keychain: 保存失败 '\(key)' - 状态码: \(status)")
+            print("❌ Keychain: Failed to save item - status code: \(status)")
             return false
         }
     }
     
-    /// 从 Keychain 获取数据
-    /// - Parameter key: 键名
-    /// - Returns: 对应的值，如果不存在则返回 nil
+    /// Retrieves data from Keychain
+    /// - Parameter key: The key name
+    /// - Returns: The corresponding value, or nil if not found
     func get(key: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -76,9 +76,9 @@ class KeychainManager {
         return nil
     }
     
-    /// 从 Keychain 删除数据
-    /// - Parameter key: 键名
-    /// - Returns: 是否删除成功
+    /// Deletes data from Keychain
+    /// - Parameter key: The key name
+    /// - Returns: Whether the deletion was successful
     @discardableResult
     func delete(key: String) -> Bool {
         let query: [String: Any] = [
@@ -91,7 +91,7 @@ class KeychainManager {
         return status == errSecSuccess || status == errSecItemNotFound
     }
     
-    /// 清空所有 Keychain 数据
+    /// Clears all Keychain data for this app
     @discardableResult
     func deleteAll() -> Bool {
         let query: [String: Any] = [

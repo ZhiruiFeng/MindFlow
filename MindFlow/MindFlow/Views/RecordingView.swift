@@ -228,6 +228,7 @@ struct RecordingView: View {
 
 // MARK: - Recording ViewModel
 
+@MainActor
 class RecordingViewModel: ObservableObject {
     @Published var state: TranscriptionState = .idle
     @Published var duration: TimeInterval = 0
@@ -249,13 +250,13 @@ class RecordingViewModel: ObservableObject {
     }
     
     func checkPermissions() {
-        if !permissionManager.microphonePermissionGranted {
+        if !permissionManager.isMicrophonePermissionGranted {
             state = .error("需要麦克风权限才能录音")
         }
     }
     
     func startRecording() {
-        guard permissionManager.microphonePermissionGranted else {
+        guard permissionManager.isMicrophonePermissionGranted else {
             state = .error("需要麦克风权限")
             return
         }

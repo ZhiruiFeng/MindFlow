@@ -121,3 +121,29 @@ Temporary Items
 *.mp3
 *.wav
 recording_*.m4a
+
+# Security - Credentials & Secrets (NEVER commit these!)
+*.pem
+*.key
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+.env
+.env.*
+!.env.example
+credentials.json
+secrets.json
+config.json
+apikeys.json
+Config.xcconfig
+**/Secrets.plist
+**/APIKeys.plist
+
+# Privacy - User Data
+user_data/
+backups/
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

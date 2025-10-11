@@ -46,6 +46,33 @@ All code in this project must adhere to these fundamental principles:
 - Document architectural decisions and trade-offs
 - Keep documentation close to the code it describes
 - Update documentation when code changes
+- Follow project documentation structure standards (see [Documentation Standards](./documentation-standards.md))
+
+## Security & Privacy Requirements
+
+All code must comply with these critical security standards:
+
+### Credentials & Secrets
+- **NEVER commit credentials to version control**
+  - No API keys, tokens, passwords, or certificates
+  - No `.env` files with real values
+  - Check `.gitignore` before first commit
+- **Use secure storage**
+  - Keychain for sensitive data
+  - Environment variables for configuration
+  - Rotate credentials if accidentally exposed
+
+### Privacy & Data Protection
+- **Never log sensitive information**
+  - No passwords, tokens, or API keys in logs
+  - No personally identifiable information (PII)
+  - Sanitize error messages
+- **Data minimization**
+  - Only collect necessary data
+  - Implement data deletion features
+  - Respect user privacy preferences
+
+See [Swift/SwiftUI Standards](./swift-swiftui-standards.md#security-standards) for detailed requirements.
 
 ## Code Review Checklist
 
@@ -58,3 +85,9 @@ Before submitting code, verify:
 - [ ] No hardcoded values that should be configurable
 - [ ] Error handling is appropriate and informative
 - [ ] Performance implications have been considered
+- [ ] **NO credentials or secrets in code or version control**
+- [ ] **NO sensitive data in logs or error messages**
+- [ ] Sensitive files are in `.gitignore`
+- [ ] Documentation follows [Documentation Standards](./documentation-standards.md)
+- [ ] New docs are in correct directory with proper naming (kebab-case)
+- [ ] All documentation links are relative and working

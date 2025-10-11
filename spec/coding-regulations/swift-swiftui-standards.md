@@ -96,6 +96,58 @@
 - Keep dependencies updated for security patches
 - Never log sensitive information
 
+### Version Control & Repository Security
+- **NEVER commit credentials or secrets to version control**
+  - No API keys, tokens, passwords, or private keys
+  - No `.env` files with real credentials
+  - No hardcoded database connection strings
+  - No OAuth secrets or client credentials
+- **Add sensitive files to .gitignore IMMEDIATELY**
+  ```
+  # .gitignore must include:
+  *.pem
+  *.key
+  *.p12
+  *.mobileprovision
+  .env
+  .env.local
+  credentials.json
+  secrets.json
+  Config.xcconfig  # if contains secrets
+  ```
+- **Use environment variables or Keychain for configuration**
+  - Development: Use `.env.example` as template (without real values)
+  - Production: Use Keychain Services or secure configuration
+- **Scan repository before first commit**
+  - Check for accidentally included secrets
+  - Use tools like `git-secrets` or `gitleaks`
+  - Review `.gitignore` completeness
+- **If secrets are accidentally committed**
+  - IMMEDIATELY rotate/revoke the exposed credentials
+  - Don't just delete the file - it's still in git history
+  - Consider using `git filter-branch` or BFG Repo-Cleaner
+  - Notify security team if applicable
+
+### Privacy & User Data
+- **Never log sensitive user information**
+  - No passwords, tokens, or API keys in logs
+  - No personally identifiable information (PII)
+  - No credit card or payment information
+  - Sanitize logs in production builds
+- **Be cautious with error messages**
+  - Don't expose system internals in user-facing errors
+  - Don't reveal file paths or database structure
+  - Generic messages for authentication failures
+- **Data minimization**
+  - Only collect data that's absolutely necessary
+  - Don't store data longer than needed
+  - Implement data deletion/export features
+- **Third-party services**
+  - Review privacy policies before integration
+  - Understand what data is shared
+  - Use data processing agreements where required
+  - Minimize data sent to analytics services
+
 ## Testing Standards
 
 ### Unit Tests

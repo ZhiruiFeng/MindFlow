@@ -35,9 +35,12 @@ class STTService {
         }
         
         let endpoint = "https://api.openai.com/v1/audio/transcriptions"
-        
+
         // 创建请求
-        var request = URLRequest(url: URL(string: endpoint)!)
+        guard let url = URL(string: endpoint) else {
+            throw STTError.invalidResponse
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
         
@@ -89,8 +92,8 @@ class STTService {
         
         let decoder = JSONDecoder()
         let whisperResponse = try decoder.decode(WhisperResponse.self, from: data)
-        
-        print("✅ 转录成功: \(whisperResponse.text.prefix(50))...")
+
+        print("✅ Transcription successful, length: \(whisperResponse.text.count) characters")
         return whisperResponse.text
     }
     

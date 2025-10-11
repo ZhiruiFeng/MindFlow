@@ -23,14 +23,14 @@ class ClipboardManager {
     func copy(text: String) {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
-        print("✅ 已复制到剪贴板: \(text.prefix(30))...")
+        print("✅ Copied to clipboard, length: \(text.count) characters")
     }
     
     // MARK: - Paste
     
     /// 自动粘贴（需要辅助功能权限）
     func paste() {
-        guard PermissionManager.shared.accessibilityPermissionGranted else {
+        guard PermissionManager.shared.isAccessibilityPermissionGranted else {
             print("⚠️ 没有辅助功能权限，无法自动粘贴")
             return
         }

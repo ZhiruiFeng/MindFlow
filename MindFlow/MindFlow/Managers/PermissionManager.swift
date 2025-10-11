@@ -14,8 +14,8 @@ import AppKit
 class PermissionManager: ObservableObject {
     static let shared = PermissionManager()
     
-    @Published var microphonePermissionGranted = false
-    @Published var accessibilityPermissionGranted = false
+    @Published var isMicrophonePermissionGranted = false
+    @Published var isAccessibilityPermissionGranted = false
     
     private init() {
         checkMicrophonePermission()
@@ -28,11 +28,11 @@ class PermissionManager: ObservableObject {
     func checkMicrophonePermission() {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
-            microphonePermissionGranted = true
+            isMicrophonePermissionGranted = true
         case .notDetermined, .denied, .restricted:
-            microphonePermissionGranted = false
+            isMicrophonePermissionGranted = false
         @unknown default:
-            microphonePermissionGranted = false
+            isMicrophonePermissionGranted = false
         }
     }
     
@@ -40,7 +40,7 @@ class PermissionManager: ObservableObject {
     func requestMicrophonePermission() async -> Bool {
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
         await MainActor.run {
-            self.microphonePermissionGranted = granted
+            self.isMicrophonePermissionGranted = granted
         }
         return granted
     }
@@ -50,7 +50,7 @@ class PermissionManager: ObservableObject {
     /// 检查辅助功能权限状态
     func checkAccessibilityPermission() {
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
-        accessibilityPermissionGranted = AXIsProcessTrustedWithOptions(options)
+        isAccessibilityPermissionGranted = AXIsProcessTrustedWithOptions(options)
     }
     
     /// 请求辅助功能权限（会打开系统设置）
@@ -84,7 +84,7 @@ class PermissionManager: ObservableObject {
     func checkAllPermissions() -> (microphone: Bool, accessibility: Bool) {
         checkMicrophonePermission()
         checkAccessibilityPermission()
-        return (microphonePermissionGranted, accessibilityPermissionGranted)
+        return (isMicrophonePermissionGranted, isAccessibilityPermissionGranted)
     }
 }
 

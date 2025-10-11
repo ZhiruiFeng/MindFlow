@@ -157,11 +157,11 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         // 麦克风权限
                         HStack {
-                            Image(systemName: permissionManager.microphonePermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundColor(permissionManager.microphonePermissionGranted ? .green : .red)
+                            Image(systemName: permissionManager.isMicrophonePermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundColor(permissionManager.isMicrophonePermissionGranted ? .green : .red)
                             Text("麦克风权限")
                             Spacer()
-                            if !permissionManager.microphonePermissionGranted {
+                            if !permissionManager.isMicrophonePermissionGranted {
                                 Button("请求权限") {
                                     Task {
                                         await permissionManager.requestMicrophonePermission()
@@ -172,18 +172,18 @@ struct SettingsView: View {
                         
                         // 辅助功能权限
                         HStack {
-                            Image(systemName: permissionManager.accessibilityPermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundColor(permissionManager.accessibilityPermissionGranted ? .green : .orange)
+                            Image(systemName: permissionManager.isAccessibilityPermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundColor(permissionManager.isAccessibilityPermissionGranted ? .green : .orange)
                             Text("辅助功能权限")
                             Spacer()
-                            if !permissionManager.accessibilityPermissionGranted {
+                            if !permissionManager.isAccessibilityPermissionGranted {
                                 Button("打开设置") {
                                     permissionManager.requestAccessibilityPermission()
                                 }
                             }
                         }
                         
-                        if !permissionManager.accessibilityPermissionGranted {
+                        if !permissionManager.isAccessibilityPermissionGranted {
                             Text("辅助功能权限用于全局热键和自动粘贴。如不授予，可手动复制文本。")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
