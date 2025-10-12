@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// LLM 文本优化服务
+/// LLM text optimization service
 class LLMService {
     static let shared = LLMService()
 
@@ -19,10 +19,10 @@ class LLMService {
     
     // MARK: - Public Methods
     
-    /// 优化文本
+    /// Optimize text
     func optimizeText(_ text: String, level: OptimizationLevel? = nil) async throws -> String {
         guard !settings.openAIKey.isEmpty else {
-            throw LLMError.missingAPIKey("OpenAI API Key 未配置")
+            throw LLMError.missingAPIKey("OpenAI API Key not configured")
         }
         
         let optimizationLevel = level ?? settings.optimizationLevel
@@ -44,7 +44,7 @@ class LLMService {
     ) async throws -> String {
         let endpoint = "https://api.openai.com/v1/chat/completions"
 
-        // 创建请求
+        // Create request
         guard let url = URL(string: endpoint) else {
             throw LLMError.invalidResponse
         }
@@ -52,20 +52,20 @@ class LLMService {
         request.httpMethod = "POST"
         request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 构建 Prompt
+
+        // Build prompt
         let systemPrompt = """
         \(level.systemPrompt)
         \(style.additionalPrompt)
-        
-        重要规则：
-        1. 直接输出优化后的文本，不要添加任何解释或说明
-        2. 保持原文的核心意思和关键信息
-        3. 如果原文有多个句子，保持分段
-        4. 添加适当的标点符号
+
+        Important rules:
+        1. Output the optimized text directly without any explanation or description
+        2. Keep the core meaning and key information of the original text
+        3. If the original text has multiple sentences, maintain the paragraphing
+        4. Add appropriate punctuation
         """
-        
-        // 构建请求体
+
+        // Build request body
         let requestBody: [String: Any] = [
             "model": settings.llmModel.rawValue,
             "messages": [
@@ -83,20 +83,20 @@ class LLMService {
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        
-        // 发送请求
+
+        // Send request
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LLMError.invalidResponse
         }
-        
+
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw LLMError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
         }
-        
-        // 解析响应
+
+        // Parse response
         struct ChatResponse: Codable {
             struct Choice: Codable {
                 struct Message: Codable {
@@ -132,11 +132,11 @@ enum LLMError: LocalizedError {
         case .missingAPIKey(let message):
             return message
         case .invalidResponse:
-            return "服务器响应无效"
+            return "Invalid server response"
         case .apiError(let message):
-            return "API 错误: \(message)"
+            return "API error: \(message)"
         case .emptyResponse:
-            return "API 返回空响应"
+            return "API returned empty response"
         }
     }
 }

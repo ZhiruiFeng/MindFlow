@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 语音转文字服务
+/// Speech-to-text service
 class STTService {
     static let shared = STTService()
 
@@ -19,7 +19,7 @@ class STTService {
     
     // MARK: - Public Methods
     
-    /// 转录音频文件
+    /// Transcribe audio file
     func transcribe(audioURL: URL) async throws -> String {
         switch settings.sttProvider {
         case .openAI:
@@ -33,12 +33,12 @@ class STTService {
     
     private func transcribeWithOpenAI(audioURL: URL) async throws -> String {
         guard !settings.openAIKey.isEmpty else {
-            throw STTError.missingAPIKey("OpenAI API Key 未配置")
+            throw STTError.missingAPIKey("OpenAI API Key not configured")
         }
 
         let endpoint = "https://api.openai.com/v1/audio/transcriptions"
 
-        // 创建请求
+        // Create request
         guard let url = URL(string: endpoint) else {
             throw STTError.invalidResponse
         }
@@ -47,35 +47,35 @@ class STTService {
 
         let trimmedKey = settings.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         request.setValue("Bearer \(trimmedKey)", forHTTPHeaderField: "Authorization")
-        
-        // 创建 multipart/form-data
+
+        // Create multipart/form-data
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        
+
         var body = Data()
-        
-        // 添加 model 字段
+
+        // Add model field
         body.append("--\(boundary)\r\n")
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
         body.append("whisper-1\r\n")
 
-        // 不指定 language，让 Whisper 自动检测语言
-        // 这样可以支持任何语言的转录
+        // Don't specify language, let Whisper auto-detect language
+        // This allows transcription of any language
 
-        // 添加音频文件
+        // Add audio file
         let audioData = try Data(contentsOf: audioURL)
         body.append("--\(boundary)\r\n")
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(audioURL.lastPathComponent)\"\r\n")
         body.append("Content-Type: audio/m4a\r\n\r\n")
         body.append(audioData)
         body.append("\r\n")
-        
-        // 结束边界
+
+        // End boundary
         body.append("--\(boundary)--\r\n")
-        
+
         request.httpBody = body
 
-        // 发送请求
+        // Send request
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -83,11 +83,11 @@ class STTService {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "未知错误"
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw STTError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
         }
-        
-        // 解析响应
+
+        // Parse response
         struct WhisperResponse: Codable {
             let text: String
         }
@@ -103,11 +103,11 @@ class STTService {
     
     private func transcribeWithElevenLabs(audioURL: URL) async throws -> String {
         guard !settings.elevenLabsKey.isEmpty else {
-            throw STTError.missingAPIKey("ElevenLabs API Key 未配置")
+            throw STTError.missingAPIKey("ElevenLabs API Key not configured")
         }
-        
-        // TODO: 实现 ElevenLabs API 集成
-        throw STTError.notImplemented("ElevenLabs STT 尚未实现")
+
+        // TODO: Implement ElevenLabs API integration
+        throw STTError.notImplemented("ElevenLabs STT not yet implemented")
     }
 }
 
@@ -125,11 +125,11 @@ enum STTError: LocalizedError {
         case .missingAPIKey(let message):
             return message
         case .invalidAudioFile:
-            return "无效的音频文件"
+            return "Invalid audio file"
         case .invalidResponse:
-            return "服务器响应无效"
+            return "Invalid server response"
         case .apiError(let message):
-            return "API 错误: \(message)"
+            return "API error: \(message)"
         case .notImplemented(let message):
             return message
         }

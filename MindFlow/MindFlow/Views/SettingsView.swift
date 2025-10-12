@@ -21,18 +21,18 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // 标题
-                Text("⚙️ MindFlow 设置")
+                // Title
+                Text("settings.title".localized)
                     .font(.largeTitle)
                     .bold()
                     .padding(.bottom, 8)
-                
-                // API 配置部分
-                GroupBox(label: Label("API 配置", systemImage: "key.fill")) {
+
+                // API Configuration section
+                GroupBox(label: Label("settings.api_config".localized, systemImage: "key.fill")) {
                     VStack(alignment: .leading, spacing: 16) {
-                        // STT 提供商选择
+                        // STT Provider selection
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("STT 提供商")
+                            Text("settings.stt_provider".localized)
                                 .font(.headline)
                             Picker("", selection: $settings.sttProvider) {
                                 ForEach(STTProvider.allCases, id: \.self) { provider in
@@ -43,15 +43,15 @@ struct SettingsView: View {
                         }
                         
                         Divider()
-                        
+
                         // OpenAI API Key
                         VStack(alignment: .leading, spacing: 8) {
                             Text("OpenAI API Key")
                                 .font(.headline)
                             HStack {
-                                SecureField("输入你的 OpenAI API Key", text: $openAIKeyInput)
+                                SecureField("settings.openai_placeholder".localized, text: $openAIKeyInput)
                                     .textFieldStyle(.roundedBorder)
-                                
+
                                 Button(action: {
                                     settings.openAIKey = openAIKeyInput
                                     validateOpenAIKey()
@@ -61,14 +61,14 @@ struct SettingsView: View {
                                             .scaleEffect(0.7)
                                             .frame(width: 60)
                                     } else {
-                                        Text("保存")
+                                        Text("settings.save".localized)
                                             .frame(width: 60)
                                     }
                                 }
                                 .disabled(openAIKeyInput.isEmpty || isValidatingOpenAI)
                             }
-                            
-                            // 验证状态
+
+                            // Validation status
                             if openAIValidationStatus != .none {
                                 HStack {
                                     Image(systemName: openAIValidationStatus.icon)
@@ -78,20 +78,20 @@ struct SettingsView: View {
                                         .foregroundColor(openAIValidationStatus.color)
                                 }
                             }
-                            
-                            Text("用于语音转文字 (Whisper) 和文本优化 (GPT)")
+
+                            Text("settings.openai_description".localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         Divider()
-                        
+
                         // ElevenLabs API Key
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("ElevenLabs API Key (可选)")
+                            Text("settings.elevenlabs_key".localized)
                                 .font(.headline)
                             HStack {
-                                SecureField("输入你的 ElevenLabs API Key", text: $elevenLabsKeyInput)
+                                SecureField("settings.elevenlabs_placeholder".localized, text: $elevenLabsKeyInput)
                                     .textFieldStyle(.roundedBorder)
                                     .onAppear {
                                         elevenLabsKeyInput = settings.elevenLabsKey
@@ -106,14 +106,14 @@ struct SettingsView: View {
                                             .scaleEffect(0.7)
                                             .frame(width: 60)
                                     } else {
-                                        Text("保存")
+                                        Text("settings.save".localized)
                                             .frame(width: 60)
                                     }
                                 }
                                 .disabled(elevenLabsKeyInput.isEmpty || isValidatingElevenLabs)
                             }
-                            
-                            // 验证状态
+
+                            // Validation status
                             if elevenLabsValidationStatus != .none {
                                 HStack {
                                     Image(systemName: elevenLabsValidationStatus.icon)
@@ -123,20 +123,20 @@ struct SettingsView: View {
                                         .foregroundColor(elevenLabsValidationStatus.color)
                                 }
                             }
-                            
-                            Text("备用 STT 服务")
+
+                            Text("settings.elevenlabs_description".localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding()
                 }
-                
-                // LLM 配置
-                GroupBox(label: Label("LLM 配置", systemImage: "brain.head.profile")) {
+
+                // LLM Configuration
+                GroupBox(label: Label("settings.llm_config".localized, systemImage: "brain.head.profile")) {
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("模型选择")
+                            Text("settings.model_selection".localized)
                                 .font(.headline)
                             Picker("", selection: $settings.llmModel) {
                                 ForEach(LLMModel.allCases, id: \.self) { model in
@@ -148,52 +148,52 @@ struct SettingsView: View {
                     }
                     .padding()
                 }
-                
-                // 权限状态
-                GroupBox(label: Label("权限状态", systemImage: "lock.shield")) {
+
+                // Permission Status
+                GroupBox(label: Label("settings.permissions".localized, systemImage: "lock.shield")) {
                     VStack(alignment: .leading, spacing: 12) {
-                        // 麦克风权限
+                        // Microphone permission
                         HStack {
                             Image(systemName: permissionManager.isMicrophonePermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(permissionManager.isMicrophonePermissionGranted ? .green : .red)
-                            Text("麦克风权限")
+                            Text("settings.microphone_permission".localized)
                             Spacer()
                             if !permissionManager.isMicrophonePermissionGranted {
-                                Button("请求权限") {
+                                Button("settings.request_permission".localized) {
                                     Task {
                                         await permissionManager.requestMicrophonePermission()
                                     }
                                 }
                             }
                         }
-                        
-                        // 辅助功能权限
+
+                        // Accessibility permission
                         HStack {
                             Image(systemName: permissionManager.isAccessibilityPermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundColor(permissionManager.isAccessibilityPermissionGranted ? .green : .orange)
-                            Text("辅助功能权限")
+                            Text("settings.accessibility_permission".localized)
                             Spacer()
                             if !permissionManager.isAccessibilityPermissionGranted {
-                                Button("打开设置") {
+                                Button("settings.open_settings".localized) {
                                     permissionManager.requestAccessibilityPermission()
                                 }
                             }
                         }
-                        
+
                         if !permissionManager.isAccessibilityPermissionGranted {
-                            Text("辅助功能权限用于全局热键和自动粘贴。如不授予，可手动复制文本。")
+                            Text("settings.accessibility_note".localized)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
                     }
                     .padding()
                 }
-                
-                // 快捷键设置
-                GroupBox(label: Label("快捷键", systemImage: "command")) {
+
+                // Hotkey settings
+                GroupBox(label: Label("settings.hotkey".localized, systemImage: "command")) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("全局触发")
+                            Text("settings.global_trigger".localized)
                             Spacer()
                             Text("⌘ Shift V")
                                 .font(.system(.body, design: .monospaced))
@@ -202,28 +202,28 @@ struct SettingsView: View {
                                 .background(Color.secondary.opacity(0.2))
                                 .cornerRadius(6)
                         }
-                        Text("在任何应用中按此快捷键即可开始录音")
+                        Text("settings.hotkey_description".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     .padding()
                 }
-                
-                // 行为设置
-                GroupBox(label: Label("行为", systemImage: "gearshape.2")) {
+
+                // Behavior settings
+                GroupBox(label: Label("settings.behavior".localized, systemImage: "gearshape.2")) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Toggle("处理完成后自动粘贴", isOn: $settings.autoPaste)
-                        Toggle("登录时启动", isOn: $settings.launchAtLogin)
-                        Toggle("显示桌面通知", isOn: $settings.showNotifications)
+                        Toggle("settings.auto_paste".localized, isOn: $settings.autoPaste)
+                        Toggle("settings.launch_at_login".localized, isOn: $settings.launchAtLogin)
+                        Toggle("settings.show_notifications".localized, isOn: $settings.showNotifications)
                     }
                     .padding()
                 }
-                
-                // 默认优化设置
-                GroupBox(label: Label("默认优化", systemImage: "wand.and.stars")) {
+
+                // Default optimization settings
+                GroupBox(label: Label("settings.optimization".localized, systemImage: "wand.and.stars")) {
                     VStack(alignment: .leading, spacing: 12) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("优化强度")
+                            Text("settings.optimization_intensity".localized)
                                 .font(.headline)
                             Picker("", selection: $settings.optimizationLevel) {
                                 ForEach(OptimizationLevel.allCases, id: \.self) { level in
@@ -234,9 +234,9 @@ struct SettingsView: View {
                         }
                         
                         Divider()
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("输出风格")
+                            Text("settings.output_style".localized)
                                 .font(.headline)
                             Picker("", selection: $settings.outputStyle) {
                                 ForEach(OutputStyle.allCases, id: \.self) { style in
@@ -314,9 +314,9 @@ enum ValidationStatus {
     var message: String {
         switch self {
         case .none: return ""
-        case .validating: return "验证中..."
-        case .valid: return "✓ 已保存"
-        case .invalid: return "✗ 无效"
+        case .validating: return "settings.validating".localized
+        case .valid: return "settings.valid".localized
+        case .invalid: return "settings.invalid".localized
         }
     }
 }

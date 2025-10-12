@@ -7,11 +7,12 @@
 
 import SwiftUI
 
-/// 主视图 - 整合录音和设置功能
+/// Main view - Integrates recording and settings functionality
 ///
-/// 提供统一的用户界面，通过 Tab 切换在录音和设置之间导航
+/// Provides a unified user interface for navigating between recording and settings via tabs
 struct MainView: View {
     @StateObject private var viewModel = RecordingViewModel()
+    @ObservedObject private var localizationManager = LocalizationManager.shared
     @State private var selectedTab: MainTab = .recording
 
     // MARK: - Body
@@ -68,7 +69,7 @@ struct MainView: View {
 
 // MARK: - Main Tab Enum
 
-/// 主视图的 Tab 类型
+/// Main view tab type
 enum MainTab: CaseIterable {
     case recording
     case settings
@@ -82,8 +83,8 @@ enum MainTab: CaseIterable {
 
     var title: String {
         switch self {
-        case .recording: return "录音"
-        case .settings: return "设置"
+        case .recording: return "tab.recording".localized
+        case .settings: return "tab.settings".localized
         }
     }
 }

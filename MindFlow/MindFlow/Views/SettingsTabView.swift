@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// 设置页面 Tab 内容
+/// Settings tab view content
 ///
-/// 提供 API 配置、权限管理、行为设置等功能
+/// Provides API configuration, permission management, behavior settings, etc.
 struct SettingsTabView: View {
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
@@ -26,6 +26,7 @@ struct SettingsTabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                languageSection
                 apiConfigurationSection
                 llmConfigurationSection
                 permissionsSection
@@ -39,8 +40,26 @@ struct SettingsTabView: View {
 
     // MARK: - Sections
 
+    private var languageSection: some View {
+        GroupBox(label: Label("settings.language".localized, systemImage: "globe")) {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker("", selection: $settings.appLanguage) {
+                    ForEach(AppLanguage.allCases, id: \.self) { language in
+                        Text(language.displayName).tag(language)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text("settings.language_description".localized)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+        }
+    }
+
     private var apiConfigurationSection: some View {
-        GroupBox(label: Label("API 配置", systemImage: "key.fill")) {
+        GroupBox(label: Label("settings.api_config".localized, systemImage: "key.fill")) {
             VStack(alignment: .leading, spacing: 16) {
                 sttProviderPicker
                 Divider()
@@ -53,10 +72,10 @@ struct SettingsTabView: View {
     }
 
     private var llmConfigurationSection: some View {
-        GroupBox(label: Label("LLM 配置", systemImage: "brain.head.profile")) {
+        GroupBox(label: Label("settings.llm_config".localized, systemImage: "brain.head.profile")) {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("模型选择")
+                    Text("settings.model_selection".localized)
                         .font(.headline)
                     Picker("", selection: $settings.llmModel) {
                         ForEach(LLMModel.allCases, id: \.self) { model in
@@ -71,13 +90,13 @@ struct SettingsTabView: View {
     }
 
     private var permissionsSection: some View {
-        GroupBox(label: Label("权限状态", systemImage: "lock.shield")) {
+        GroupBox(label: Label("settings.permissions".localized, systemImage: "lock.shield")) {
             VStack(alignment: .leading, spacing: 12) {
                 microphonePermissionRow
                 accessibilityPermissionRow
 
                 if !permissionManager.isAccessibilityPermissionGranted {
-                    Text("辅助功能权限用于全局热键和自动粘贴。如不授予，可手动复制文本。")
+                    Text("settings.accessibility_note".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -87,10 +106,10 @@ struct SettingsTabView: View {
     }
 
     private var hotKeySection: some View {
-        GroupBox(label: Label("快捷键", systemImage: "command")) {
+        GroupBox(label: Label("settings.hotkey".localized, systemImage: "command")) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("全局触发")
+                    Text("settings.global_trigger".localized)
                     Spacer()
                     Text("⌘ Shift V")
                         .font(.system(.body, design: .monospaced))
@@ -99,7 +118,7 @@ struct SettingsTabView: View {
                         .background(Color.secondary.opacity(0.2))
                         .cornerRadius(6)
                 }
-                Text("在任何应用中按此快捷键即可开始录音")
+                Text("settings.hotkey_description".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -108,21 +127,21 @@ struct SettingsTabView: View {
     }
 
     private var behaviorSection: some View {
-        GroupBox(label: Label("行为", systemImage: "gearshape.2")) {
+        GroupBox(label: Label("settings.behavior".localized, systemImage: "gearshape.2")) {
             VStack(alignment: .leading, spacing: 12) {
-                Toggle("处理完成后自动粘贴", isOn: $settings.autoPaste)
-                Toggle("登录时启动", isOn: $settings.launchAtLogin)
-                Toggle("显示桌面通知", isOn: $settings.showNotifications)
+                Toggle("settings.auto_paste".localized, isOn: $settings.autoPaste)
+                Toggle("settings.launch_at_login".localized, isOn: $settings.launchAtLogin)
+                Toggle("settings.show_notifications".localized, isOn: $settings.showNotifications)
             }
             .padding()
         }
     }
 
     private var optimizationSection: some View {
-        GroupBox(label: Label("默认优化", systemImage: "wand.and.stars")) {
+        GroupBox(label: Label("settings.optimization".localized, systemImage: "wand.and.stars")) {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("优化强度")
+                    Text("settings.optimization_intensity".localized)
                         .font(.headline)
                     Picker("", selection: $settings.optimizationLevel) {
                         ForEach(OptimizationLevel.allCases, id: \.self) { level in
@@ -135,7 +154,7 @@ struct SettingsTabView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("输出风格")
+                    Text("settings.output_style".localized)
                         .font(.headline)
                     Picker("", selection: $settings.outputStyle) {
                         ForEach(OutputStyle.allCases, id: \.self) { style in
@@ -153,7 +172,7 @@ struct SettingsTabView: View {
 
     private var sttProviderPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("STT 提供商")
+            Text("settings.stt_provider".localized)
                 .font(.headline)
             Picker("", selection: $settings.sttProvider) {
                 ForEach(STTProvider.allCases, id: \.self) { provider in
@@ -169,7 +188,7 @@ struct SettingsTabView: View {
             Text("OpenAI API Key")
                 .font(.headline)
             HStack {
-                SecureField("输入你的 OpenAI API Key", text: $openAIKeyInput)
+                SecureField("settings.openai_placeholder".localized, text: $openAIKeyInput)
                     .textFieldStyle(.roundedBorder)
 
                 Button(action: {
@@ -181,7 +200,7 @@ struct SettingsTabView: View {
                             .scaleEffect(0.7)
                             .frame(width: 60)
                     } else {
-                        Text("保存")
+                        Text("settings.save".localized)
                             .frame(width: 60)
                     }
                 }
@@ -198,7 +217,7 @@ struct SettingsTabView: View {
                 }
             }
 
-            Text("用于语音转文字 (Whisper) 和文本优化 (GPT)")
+            Text("settings.openai_description".localized)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -206,10 +225,10 @@ struct SettingsTabView: View {
 
     private var elevenLabsKeyField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("ElevenLabs API Key (可选)")
+            Text("settings.elevenlabs_key".localized)
                 .font(.headline)
             HStack {
-                SecureField("输入你的 ElevenLabs API Key", text: $elevenLabsKeyInput)
+                SecureField("settings.elevenlabs_placeholder".localized, text: $elevenLabsKeyInput)
                     .textFieldStyle(.roundedBorder)
                     .onAppear {
                         elevenLabsKeyInput = settings.elevenLabsKey
@@ -224,7 +243,7 @@ struct SettingsTabView: View {
                             .scaleEffect(0.7)
                             .frame(width: 60)
                     } else {
-                        Text("保存")
+                        Text("settings.save".localized)
                             .frame(width: 60)
                     }
                 }
@@ -241,7 +260,7 @@ struct SettingsTabView: View {
                 }
             }
 
-            Text("备用 STT 服务")
+            Text("settings.elevenlabs_description".localized)
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -253,10 +272,10 @@ struct SettingsTabView: View {
         HStack {
             Image(systemName: permissionManager.isMicrophonePermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(permissionManager.isMicrophonePermissionGranted ? .green : .red)
-            Text("麦克风权限")
+            Text("settings.microphone_permission".localized)
             Spacer()
             if !permissionManager.isMicrophonePermissionGranted {
-                Button("请求权限") {
+                Button("settings.request_permission".localized) {
                     Task {
                         await permissionManager.requestMicrophonePermission()
                     }
@@ -269,10 +288,10 @@ struct SettingsTabView: View {
         HStack {
             Image(systemName: permissionManager.isAccessibilityPermissionGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
                 .foregroundColor(permissionManager.isAccessibilityPermissionGranted ? .green : .orange)
-            Text("辅助功能权限")
+            Text("settings.accessibility_permission".localized)
             Spacer()
             if !permissionManager.isAccessibilityPermissionGranted {
-                Button("打开设置") {
+                Button("settings.open_settings".localized) {
                     permissionManager.requestAccessibilityPermission()
                 }
             }

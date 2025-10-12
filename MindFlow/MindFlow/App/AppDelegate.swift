@@ -15,13 +15,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = Settings.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 显示 Dock 图标，作为普通应用运行
+        // Show Dock icon, run as normal application
         NSApplication.shared.setActivationPolicy(.regular)
 
-        // 注册全局热键
+        // Register global hotkey
         setupHotKey()
 
-        // 检查权限
+        // Check permissions
         checkPermissions()
 
         print("✅ MindFlow 启动成功")
@@ -31,7 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Hot Key Setup
     
     private func setupHotKey() {
-        // 注册默认热键: Cmd+Shift+V
+        // Register default hotkey: Cmd+Shift+V
         // cmdKey = 0x0100 (256), shiftKey = 0x0200 (512)
         let modifiers: UInt32 = 0x0100 | 0x0200  // Cmd + Shift
         hotKeyManager.registerHotKey(keyCode: 9, modifiers: modifiers) { [weak self] in
@@ -47,21 +47,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func checkPermissions() {
         Task {
-            // 检查麦克风权限
+            // Check microphone permission
             if !permissionManager.isMicrophonePermissionGranted {
                 let granted = await permissionManager.requestMicrophonePermission()
                 if !granted {
-                    // 必须在主线程上显示 Alert
+                    // Must show Alert on main thread
                     await MainActor.run {
                         showPermissionAlert(for: .microphone)
                     }
                 }
             }
-            
-            // 检查辅助功能权限
+
+            // Check accessibility permission
             await MainActor.run {
                 if !permissionManager.isAccessibilityPermissionGranted {
-                    // 不强制要求，只提示
+                    // Not mandatory, just prompt
                     print("⚠️ 辅助功能权限未授予，自动粘贴功能将不可用")
                 }
             }
@@ -70,12 +70,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func showPermissionAlert(for permissionType: PermissionType) {
         let alert = NSAlert()
-        alert.messageText = "需要\(permissionType.displayName)权限"
+        alert.messageText = String(format: "alert.permission_required".localized, permissionType.displayName)
         alert.informativeText = permissionType.description
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "打开系统设置")
-        alert.addButton(withTitle: "稍后")
-        
+        alert.addButton(withTitle: "alert.open_system_settings".localized)
+        alert.addButton(withTitle: "alert.later".localized)
+
         if alert.runModal() == .alertFirstButtonReturn {
             permissionManager.openSystemPreferences(for: permissionType)
         }

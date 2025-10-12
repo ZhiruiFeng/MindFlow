@@ -13,7 +13,7 @@ struct RecordingView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // 标题
+            // Title
             HStack {
                 Image(systemName: "mic.fill")
                     .font(.title2)
@@ -27,8 +27,8 @@ struct RecordingView: View {
             .padding(.top)
             
             Divider()
-            
-            // 根据状态显示不同的内容
+
+            // Display different content based on state
             switch viewModel.state {
             case .idle:
                 idleView
@@ -55,23 +55,23 @@ struct RecordingView: View {
     private var idleView: some View {
         VStack(spacing: 24) {
             Spacer()
-            
-            // 麦克风图标
+
+            // Microphone icon
             Image(systemName: "mic.circle")
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
-            
-            Text("准备开始录音")
+
+            Text("recording.ready".localized)
                 .font(.title3)
                 .foregroundColor(.secondary)
-            
-            // 开始按钮
+
+            // Start button
             Button(action: {
                 viewModel.startRecording()
             }) {
                 HStack {
                     Image(systemName: "record.circle")
-                    Text("开始录音")
+                    Text("recording.start".localized)
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -90,7 +90,7 @@ struct RecordingView: View {
     
     private var recordingView: some View {
         VStack(spacing: 16) {
-            // 动画录音图标
+            // Animated recording icon
             ZStack {
                 Circle()
                     .fill(Color.red.opacity(0.2))
@@ -106,17 +106,17 @@ struct RecordingView: View {
                 viewModel.pulseAnimation = true
             }
             .padding(.top, 20)
-            
-            // 录音时长
+
+            // Recording duration
             Text(viewModel.formattedDuration)
                 .font(.system(.largeTitle, design: .monospaced))
                 .bold()
-            
-            Text("录音中...")
+
+            Text("recording.recording".localized)
                 .font(.headline)
                 .foregroundColor(.secondary)
-            
-            // 音频波形（简化显示）
+
+            // Audio waveform (simplified)
             HStack(spacing: 4) {
                 ForEach(0..<20, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 2)
@@ -128,8 +128,8 @@ struct RecordingView: View {
             .padding(.vertical, 12)
             
             Spacer()
-            
-            // 控制按钮 - 确保可见
+
+            // Control buttons - ensure visibility
             VStack(spacing: 12) {
                 HStack(spacing: 16) {
                     Button(action: {
@@ -137,7 +137,7 @@ struct RecordingView: View {
                     }) {
                         HStack {
                             Image(systemName: viewModel.isPaused ? "play.circle" : "pause.circle")
-                            Text(viewModel.isPaused ? "继续" : "暂停")
+                            Text(viewModel.isPaused ? "recording.resume".localized : "recording.pause".localized)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
@@ -151,7 +151,7 @@ struct RecordingView: View {
                     }) {
                         HStack {
                             Image(systemName: "stop.circle.fill")
-                            Text("停止并处理")
+                            Text("recording.stop".localized)
                         }
                         .frame(maxWidth: .infinity)
                         .foregroundColor(.white)
@@ -181,11 +181,11 @@ struct RecordingView: View {
                 .font(.headline)
             
             if case .transcribing = viewModel.state {
-                Text("正在将语音转换为文字...")
+                Text("state.transcribing_detail".localized)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             } else if case .optimizing = viewModel.state {
-                Text("正在使用 AI 优化文本...")
+                Text("state.optimizing_detail".localized)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -205,17 +205,17 @@ struct RecordingView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.red)
             
-            Text("出错了")
+            Text("recording.error".localized)
                 .font(.title3)
                 .bold()
-            
+
             Text(message)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
-            Button("重试") {
+
+            Button("recording.retry".localized) {
                 viewModel.reset()
             }
             .buttonStyle(.borderedProminent)
@@ -251,28 +251,28 @@ class RecordingViewModel: ObservableObject {
     
     func checkPermissions() {
         if !permissionManager.isMicrophonePermissionGranted {
-            state = .error("需要麦克风权限才能录音")
+            state = .error("error.microphone_required".localized)
         }
     }
-    
+
     func startRecording() {
         guard permissionManager.isMicrophonePermissionGranted else {
-            state = .error("需要麦克风权限")
+            state = .error("error.microphone_needed".localized)
             return
         }
         
         state = .recording
         duration = 0
         isPaused = false
-        
-        // 开始录音
+
+        // Start recording
         audioRecorder.startRecording { [weak self] success in
             if !success {
-                self?.state = .error("无法开始录音")
+                self?.state = .error("error.recording_failed".localized)
             }
         }
-        
-        // 启动计时器
+
+        // Start timer
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self = self, !self.isPaused else { return }
             self.duration += 0.1
@@ -294,15 +294,15 @@ class RecordingViewModel: ObservableObject {
         pulseAnimation = false
         
         state = .processing
-        
-        // 停止录音
+
+        // Stop recording
         audioRecorder.stopRecording { [weak self] audioURL in
             guard let self = self, let url = audioURL else {
-                self?.state = .error("录音文件无效")
+                self?.state = .error("error.invalid_audio".localized)
                 return
             }
-            
-            // 转录
+
+            // Transcribe
             self.transcribe(audioURL: url)
         }
     }
@@ -318,7 +318,7 @@ class RecordingViewModel: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    self.state = .error("转录失败: \(error.localizedDescription)")
+                    self.state = .error(String(format: "error.transcription_failed".localized, error.localizedDescription))
                 }
             }
         }
@@ -343,7 +343,7 @@ class RecordingViewModel: ObservableObject {
                     self.state = .completed
                 }
             } catch {
-                // 如果优化失败，至少返回原始文本
+                // If optimization fails, return at least the original text
                 let result = TranscriptionResult(
                     originalText: originalText,
                     optimizedText: nil,

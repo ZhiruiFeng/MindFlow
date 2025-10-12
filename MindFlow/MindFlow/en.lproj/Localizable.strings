@@ -1,0 +1,134 @@
+/*
+  Localizable.strings (English)
+  MindFlow
+*/
+
+// MARK: - Main Tab
+"tab.recording" = "Recording";
+"tab.settings" = "Settings";
+
+// MARK: - Recording View
+"recording.ready" = "Ready to Record";
+"recording.start" = "Start Recording";
+"recording.recording" = "Recording...";
+"recording.pause" = "Pause";
+"recording.resume" = "Resume";
+"recording.stop" = "Stop & Process";
+"recording.error" = "An Error Occurred";
+"recording.retry" = "Retry";
+"recording.shortcut_hint" = "Click the button below or use shortcut ⌘ Shift V";
+
+// MARK: - Processing States
+"state.ready" = "Ready";
+"state.recording" = "Recording...";
+"state.processing" = "Processing audio...";
+"state.transcribing" = "Transcribing...";
+"state.transcribing_detail" = "Converting speech to text...";
+"state.optimizing" = "Optimizing text...";
+"state.optimizing_detail" = "Using AI to optimize text...";
+"state.completed" = "Completed";
+"state.error" = "Error: %@";
+
+// MARK: - Preview View
+"preview.title" = "Text Preview";
+"preview.original" = "Original:";
+"preview.optimized" = "Optimized:";
+"preview.no_optimization" = "No optimization performed";
+"preview.optimization_level" = "Optimization Level:";
+"preview.copy" = "Copy";
+"preview.reoptimize" = "Re-optimize";
+"preview.paste" = "Paste";
+"preview.copied" = "✓ Copied to clipboard";
+"preview.pasted" = "✓ Pasted to active window";
+
+// MARK: - Settings View
+"settings.title" = "⚙️ MindFlow Settings";
+"settings.api_config" = "API Configuration";
+"settings.llm_config" = "LLM Configuration";
+"settings.permissions" = "Permission Status";
+"settings.hotkey" = "Hotkey";
+"settings.behavior" = "Behavior";
+"settings.optimization" = "Default Optimization";
+
+// API Configuration
+"settings.stt_provider" = "STT Provider";
+"settings.openai_key" = "OpenAI API Key";
+"settings.openai_placeholder" = "Enter your OpenAI API Key";
+"settings.openai_description" = "Used for speech-to-text (Whisper) and text optimization (GPT)";
+"settings.elevenlabs_key" = "ElevenLabs API Key (Optional)";
+"settings.elevenlabs_placeholder" = "Enter your ElevenLabs API Key";
+"settings.elevenlabs_description" = "Alternative STT service";
+"settings.save" = "Save";
+"settings.validating" = "Validating...";
+"settings.valid" = "✓ Saved";
+"settings.invalid" = "✗ Invalid";
+
+// LLM Configuration
+"settings.model_selection" = "Model Selection";
+
+// Permissions
+"settings.microphone_permission" = "Microphone Permission";
+"settings.accessibility_permission" = "Accessibility Permission";
+"settings.request_permission" = "Request Permission";
+"settings.open_settings" = "Open Settings";
+"settings.accessibility_note" = "Accessibility permission is used for global hotkeys and auto-paste. If not granted, you can still use the app but will need to manually copy text.";
+
+// Hotkey
+"settings.global_trigger" = "Global Trigger";
+"settings.hotkey_description" = "Press this shortcut in any app to start recording";
+
+// Behavior
+"settings.auto_paste" = "Auto-paste after processing";
+"settings.launch_at_login" = "Launch at login";
+"settings.show_notifications" = "Show desktop notifications";
+
+// Language
+"settings.language" = "Language";
+"settings.language_description" = "Choose the app language";
+
+// Optimization
+"settings.optimization_intensity" = "Optimization Intensity";
+"settings.output_style" = "Output Style";
+
+// MARK: - Enums Display Names
+
+// STT Provider (no translation needed - brand names)
+"enum.stt.openai" = "OpenAI";
+"enum.stt.elevenlabs" = "ElevenLabs";
+
+// LLM Models
+"enum.llm.gpt4o_mini" = "GPT-4o Mini (Recommended)";
+"enum.llm.gpt4o" = "GPT-4o";
+"enum.llm.gpt4" = "GPT-4";
+
+// Optimization Levels
+"enum.optimization.light" = "Light";
+"enum.optimization.medium" = "Medium";
+"enum.optimization.heavy" = "Heavy";
+
+// Output Styles
+"enum.style.conversational" = "Conversational";
+"enum.style.formal" = "Formal";
+
+// Language Options
+"enum.language.system" = "System Default";
+"enum.language.english" = "English";
+"enum.language.chinese" = "简体中文";
+
+// MARK: - Permission Types
+"permission.microphone" = "Microphone";
+"permission.accessibility" = "Accessibility";
+"permission.microphone_description" = "MindFlow needs to access the microphone to record your voice.";
+"permission.accessibility_description" = "MindFlow needs accessibility permission for global hotkeys and auto-paste. If not granted, you can still use the app but will need to manually copy text.";
+
+// MARK: - Error Messages
+"error.microphone_required" = "Microphone permission is required for recording";
+"error.microphone_needed" = "Microphone permission needed";
+"error.recording_failed" = "Unable to start recording";
+"error.invalid_audio" = "Invalid audio file";
+"error.transcription_failed" = "Transcription failed: %@";
+
+// MARK: - Alert Messages
+"alert.permission_required" = "Permission Required: %@";
+"alert.open_system_settings" = "Open System Settings";
+"alert.later" = "Later";

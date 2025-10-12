@@ -8,7 +8,7 @@
 import Foundation
 import AVFoundation
 
-/// 音频录制服务
+/// Audio recording service
 class AudioRecorder: NSObject, ObservableObject {
     static let shared = AudioRecorder()
     
@@ -20,24 +20,24 @@ class AudioRecorder: NSObject, ObservableObject {
     
     private override init() {
         super.init()
-        // macOS 不需要配置 audio session，AVAudioSession 只在 iOS 上可用
+        // macOS doesn't need to configure audio session, AVAudioSession is only available on iOS
         print("✅ AudioRecorder 初始化完成")
     }
     
     // MARK: - Recording Control
     
-    /// 开始录音
+    /// Start recording
     func startRecording(completion: @escaping (Bool) -> Void) {
-        // 生成临时文件路径
+        // Generate temporary file path
         let tempDir = FileManager.default.temporaryDirectory
         audioURL = tempDir.appendingPathComponent("recording_\(UUID().uuidString).m4a")
-        
+
         guard let url = audioURL else {
             completion(false)
             return
         }
-        
-        // 录音设置
+
+        // Recording settings
         let settings: [String: Any] = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
             AVSampleRateKey: 44100.0,
@@ -69,7 +69,7 @@ class AudioRecorder: NSObject, ObservableObject {
         }
     }
     
-    /// 暂停录音
+    /// Pause recording
     func pauseRecording() {
         guard isRecording else { return }
         
@@ -78,7 +78,7 @@ class AudioRecorder: NSObject, ObservableObject {
         print("⏸ 录音已暂停")
     }
     
-    /// 继续录音
+    /// Resume recording
     func resumeRecording() {
         guard isRecording && isPaused else { return }
         
@@ -87,52 +87,52 @@ class AudioRecorder: NSObject, ObservableObject {
         print("▶️ 录音已继续")
     }
     
-    /// 停止录音
+    /// Stop recording
     func stopRecording(completion: @escaping (URL?) -> Void) {
         guard isRecording else {
             completion(nil)
             return
         }
-        
+
         audioRecorder?.stop()
         isRecording = false
         isPaused = false
-        
+
         print("⏹ 录音已停止")
-        
-        // 返回录音文件 URL
+
+        // Return recording file URL
         completion(audioURL)
     }
     
-    /// 取消录音
+    /// Cancel recording
     func cancelRecording() {
         audioRecorder?.stop()
         audioRecorder?.deleteRecording()
         isRecording = false
         isPaused = false
-        
-        // 删除临时文件
+
+        // Delete temporary file
         if let url = audioURL {
             try? FileManager.default.removeItem(at: url)
         }
-        
+
         audioURL = nil
         print("🗑 录音已取消")
     }
     
     // MARK: - Audio Level
     
-    /// 获取当前音频电平 (0.0 - 1.0)
+    /// Get current audio level (0.0 - 1.0)
     func getAudioLevel() -> Float {
         guard let recorder = audioRecorder, recorder.isRecording else {
             return 0.0
         }
-        
+
         recorder.updateMeters()
         let averagePower = recorder.averagePower(forChannel: 0)
-        
-        // 将分贝值转换为 0-1 范围
-        // averagePower 范围通常是 -160 到 0
+
+        // Convert decibel value to 0-1 range
+        // averagePower range is typically -160 to 0
         let normalized = (averagePower + 160) / 160
         return max(0.0, min(1.0, normalized))
     }

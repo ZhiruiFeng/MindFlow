@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 转录结果模型
+/// Transcription result model
 struct TranscriptionResult: Identifiable, Codable {
     let id: UUID
     let originalText: String
@@ -31,7 +31,7 @@ struct TranscriptionResult: Identifiable, Codable {
     }
 }
 
-/// 转录状态
+/// Transcription state
 enum TranscriptionState {
     case idle
     case recording
@@ -53,19 +53,19 @@ enum TranscriptionState {
     var displayMessage: String {
         switch self {
         case .idle:
-            return "准备就绪"
+            return "state.ready".localized
         case .recording:
-            return "录音中..."
+            return "state.recording".localized
         case .processing:
-            return "处理音频..."
+            return "state.processing".localized
         case .transcribing:
-            return "转换文字中..."
+            return "state.transcribing".localized
         case .optimizing:
-            return "优化文本中..."
+            return "state.optimizing".localized
         case .completed:
-            return "完成"
+            return "state.completed".localized
         case .error(let message):
-            return "错误: \(message)"
+            return String(format: "state.error".localized, message)
         }
     }
 }

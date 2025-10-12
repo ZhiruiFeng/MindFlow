@@ -9,7 +9,7 @@ import Foundation
 import Carbon
 import AppKit
 
-/// 全局热键管理器
+/// Global hotkey manager
 class HotKeyManager {
     static let shared = HotKeyManager()
     
@@ -21,29 +21,29 @@ class HotKeyManager {
     
     // MARK: - Register HotKey
     
-    /// 注册全局热键
+    /// Register global hotkey
     /// - Parameters:
-    ///   - keyCode: 按键代码（例如：9 = V）
-    ///   - modifiers: 修饰键（例如：cmdKey | shiftKey）
-    ///   - callback: 按下热键时的回调
+    ///   - keyCode: Key code (e.g., 9 = V)
+    ///   - modifiers: Modifier keys (e.g., cmdKey | shiftKey)
+    ///   - callback: Callback when hotkey is pressed
     func registerHotKey(keyCode: UInt32, modifiers: UInt32, callback: @escaping () -> Void) {
-        // 先注销已有的热键
+        // Unregister existing hotkey first
         unregisterHotKey()
-        
-        // 保存回调
+
+        // Save callback
         hotKeyCallback = callback
-        
-        // 创建热键 ID
+
+        // Create hotkey ID
         var hotKeyID = EventHotKeyID()
         hotKeyID.signature = OSType(0x4D464C57) // "MFLW"
         hotKeyID.id = 1
-        
-        // 创建事件类型
+
+        // Create event type
         var eventType = EventTypeSpec()
         eventType.eventClass = OSType(kEventClassKeyboard)
         eventType.eventKind = OSType(kEventHotKeyPressed)
-        
-        // 安装事件处理器
+
+        // Install event handler
         InstallEventHandler(
             GetApplicationEventTarget(),
             { (nextHandler, theEvent, userData) -> OSStatus in
@@ -55,8 +55,8 @@ class HotKeyManager {
             nil,
             &eventHandler
         )
-        
-        // 注册热键
+
+        // Register hotkey
         let status = RegisterEventHotKey(
             keyCode,
             modifiers,
@@ -67,18 +67,18 @@ class HotKeyManager {
         )
         
         if status == noErr {
-            print("✅ 全局热键注册成功: keyCode=\(keyCode), modifiers=\(modifiers)")
+            print("✅ Global hotkey registered successfully: keyCode=\(keyCode), modifiers=\(modifiers)")
         } else {
-            print("❌ 全局热键注册失败: \(status)")
+            print("❌ Global hotkey registration failed: \(status)")
         }
     }
     
-    /// 注销全局热键
+    /// Unregister global hotkey
     func unregisterHotKey() {
         if let ref = hotKeyRef {
             UnregisterEventHotKey(ref)
             hotKeyRef = nil
-            print("✅ 全局热键已注销")
+            print("✅ Global hotkey unregistered")
         }
         
         if let handler = eventHandler {
@@ -92,7 +92,7 @@ class HotKeyManager {
     // MARK: - Event Handler
     
     private func handleHotKeyEvent() {
-        print("🔥 热键被触发")
+        print("🔥 Hotkey triggered")
         DispatchQueue.main.async {
             self.hotKeyCallback?()
         }
@@ -106,21 +106,21 @@ class HotKeyManager {
 // MARK: - Key Codes Reference
 
 /*
- 常用按键代码参考：
- 
- 字母键：
+ Common key code reference:
+
+ Letter keys:
  A = 0x00
  S = 0x01
  D = 0x02
  V = 0x09
- 
- 修饰键：
+
+ Modifier keys:
  cmdKey = 0x0100 (Command/⌘)
  shiftKey = 0x0200 (Shift)
  optionKey = 0x0800 (Option/⌥)
  controlKey = 0x1000 (Control)
- 
- 组合示例：
+
+ Combination examples:
  Cmd+Shift+V = keyCode: 9, modifiers: cmdKey | shiftKey
  */
 

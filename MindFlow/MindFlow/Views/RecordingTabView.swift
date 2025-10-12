@@ -7,9 +7,9 @@
 
 import SwiftUI
 
-/// 录音页面 Tab 内容
+/// Recording tab view content
 ///
-/// 提供录音、转录和文本优化的完整流程界面
+/// Provides the complete workflow interface for recording, transcription, and text optimization
 struct RecordingTabView: View {
     @ObservedObject var viewModel: RecordingViewModel
 
@@ -42,7 +42,7 @@ struct RecordingTabView: View {
 
 // MARK: - Idle State View
 
-/// 空闲状态视图 - 等待用户开始录音
+/// Idle state view - waiting for user to start recording
 struct IdleStateView: View {
     @ObservedObject var viewModel: RecordingViewModel
 
@@ -54,11 +54,11 @@ struct IdleStateView: View {
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
 
-            Text("准备开始录音")
+            Text("recording.ready".localized)
                 .font(.title3)
                 .foregroundColor(.secondary)
 
-            Text("点击下方按钮或使用快捷键 ⌘ Shift V")
+            Text("recording.shortcut_hint".localized)
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -67,7 +67,7 @@ struct IdleStateView: View {
             }) {
                 HStack {
                     Image(systemName: "record.circle")
-                    Text("开始录音")
+                    Text("recording.start".localized)
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -85,7 +85,7 @@ struct IdleStateView: View {
 
 // MARK: - Recording State View
 
-/// 录音状态视图 - 显示录音进度和控制按钮
+/// Recording state view - displays recording progress and control buttons
 struct RecordingStateView: View {
     @ObservedObject var viewModel: RecordingViewModel
 
@@ -99,7 +99,7 @@ struct RecordingStateView: View {
                 .font(.system(.largeTitle, design: .monospaced))
                 .bold()
 
-            Text("录音中...")
+            Text("recording.recording".localized)
                 .font(.headline)
                 .foregroundColor(.secondary)
 
@@ -147,7 +147,7 @@ struct RecordingStateView: View {
             }) {
                 HStack {
                     Image(systemName: viewModel.isPaused ? "play.circle" : "pause.circle")
-                    Text(viewModel.isPaused ? "继续" : "暂停")
+                    Text(viewModel.isPaused ? "recording.resume".localized : "recording.pause".localized)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -161,7 +161,7 @@ struct RecordingStateView: View {
             }) {
                 HStack {
                     Image(systemName: "stop.circle.fill")
-                    Text("停止并处理")
+                    Text("recording.stop".localized)
                 }
                 .frame(maxWidth: .infinity)
                 .foregroundColor(.white)
@@ -176,7 +176,7 @@ struct RecordingStateView: View {
 
 // MARK: - Processing State View
 
-/// 处理状态视图 - 显示转录和优化进度
+/// Processing state view - displays transcription and optimization progress
 struct ProcessingStateView: View {
     @ObservedObject var viewModel: RecordingViewModel
 
@@ -192,11 +192,11 @@ struct ProcessingStateView: View {
                 .font(.headline)
 
             if case .transcribing = viewModel.state {
-                Text("正在将语音转换为文字...")
+                Text("state.transcribing_detail".localized)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             } else if case .optimizing = viewModel.state {
-                Text("正在使用 AI 优化文本...")
+                Text("state.optimizing_detail".localized)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -208,7 +208,7 @@ struct ProcessingStateView: View {
 
 // MARK: - Error State View
 
-/// 错误状态视图 - 显示错误信息和重试选项
+/// Error state view - displays error message and retry option
 struct ErrorStateView: View {
     let message: String
     @ObservedObject var viewModel: RecordingViewModel
@@ -221,7 +221,7 @@ struct ErrorStateView: View {
                 .font(.system(size: 60))
                 .foregroundColor(.red)
 
-            Text("出错了")
+            Text("recording.error".localized)
                 .font(.title3)
                 .bold()
 
@@ -231,7 +231,7 @@ struct ErrorStateView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("重试") {
+            Button("recording.retry".localized) {
                 viewModel.reset()
             }
             .buttonStyle(.borderedProminent)

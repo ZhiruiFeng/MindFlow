@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// 应用设置模型
+/// Application settings model
 class Settings: ObservableObject {
     static let shared = Settings()
     
@@ -29,63 +29,71 @@ class Settings: ObservableObject {
         }
     }
     
-    /// 选择的 STT 提供商
+    /// Selected STT provider
     @Published var sttProvider: STTProvider {
         didSet {
             UserDefaults.standard.set(sttProvider.rawValue, forKey: "stt_provider")
         }
     }
     
-    /// 选择的 LLM 模型
+    /// Selected LLM model
     @Published var llmModel: LLMModel {
         didSet {
             UserDefaults.standard.set(llmModel.rawValue, forKey: "llm_model")
         }
     }
     
-    /// 优化强度
+    /// Optimization intensity level
     @Published var optimizationLevel: OptimizationLevel {
         didSet {
             UserDefaults.standard.set(optimizationLevel.rawValue, forKey: "optimization_level")
         }
     }
     
-    /// 输出风格
+    /// Output style
     @Published var outputStyle: OutputStyle {
         didSet {
             UserDefaults.standard.set(outputStyle.rawValue, forKey: "output_style")
         }
     }
     
-    /// 自动粘贴开关
+    /// Auto-paste toggle
     @Published var autoPaste: Bool {
         didSet {
             UserDefaults.standard.set(autoPaste, forKey: "auto_paste")
         }
     }
     
-    /// 登录时启动
+    /// Launch at login
     @Published var launchAtLogin: Bool {
         didSet {
             UserDefaults.standard.set(launchAtLogin, forKey: "launch_at_login")
         }
     }
     
-    /// 显示通知
+    /// Show notifications
     @Published var showNotifications: Bool {
         didSet {
             UserDefaults.standard.set(showNotifications, forKey: "show_notifications")
         }
     }
-    
+
+    /// App language preference
+    @Published var appLanguage: AppLanguage {
+        didSet {
+            UserDefaults.standard.set(appLanguage.rawValue, forKey: "app_language")
+            LocalizationManager.shared.setLanguage(appLanguage)
+        }
+    }
+
     // MARK: - Initialization
     
     private init() {
-        // 从 Keychain 加载 API Keys
+        // Load API Keys from Keychain
         self.openAIKey = (KeychainManager.shared.get(key: "openai_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         self.elevenLabsKey = (KeychainManager.shared.get(key: "elevenlabs_api_key") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // 从 UserDefaults 加载设置
+
+        // Load settings from UserDefaults
         let sttProviderRaw = UserDefaults.standard.string(forKey: "stt_provider") ?? STTProvider.openAI.rawValue
         self.sttProvider = STTProvider(rawValue: sttProviderRaw) ?? .openAI
         
@@ -101,28 +109,35 @@ class Settings: ObservableObject {
         self.autoPaste = UserDefaults.standard.bool(forKey: "auto_paste")
         self.launchAtLogin = UserDefaults.standard.bool(forKey: "launch_at_login")
         self.showNotifications = UserDefaults.standard.bool(forKey: "show_notifications")
+
+        // Load language preference
+        let languageRaw = UserDefaults.standard.string(forKey: "app_language") ?? AppLanguage.system.rawValue
+        self.appLanguage = AppLanguage(rawValue: languageRaw) ?? .system
+
+        // Apply language setting
+        LocalizationManager.shared.setLanguage(appLanguage)
     }
     
     // MARK: - Helper Methods
     
-    /// 验证 OpenAI API Key 是否有效
+    /// Validate if OpenAI API Key is valid
     func validateOpenAIKey() async -> Bool {
         guard !openAIKey.isEmpty else { return false }
-        // TODO: 实际调用 API 验证
+        // TODO: Actually call API for validation
         return true
     }
-    
-    /// 验证 ElevenLabs API Key 是否有效
+
+    /// Validate if ElevenLabs API Key is valid
     func validateElevenLabsKey() async -> Bool {
         guard !elevenLabsKey.isEmpty else { return false }
-        // TODO: 实际调用 API 验证
+        // TODO: Actually call API for validation
         return true
     }
 }
 
 // MARK: - Enums
 
-/// STT 服务提供商
+/// STT service provider
 enum STTProvider: String, CaseIterable {
     case openAI = "OpenAI"
     case elevenLabs = "ElevenLabs"
@@ -132,7 +147,7 @@ enum STTProvider: String, CaseIterable {
     }
 }
 
-/// LLM 模型
+/// LLM model
 enum LLMModel: String, CaseIterable {
     case gpt4oMini = "gpt-4o-mini"
     case gpt4o = "gpt-4o"
@@ -140,14 +155,14 @@ enum LLMModel: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .gpt4oMini: return "GPT-4o Mini (推荐)"
-        case .gpt4o: return "GPT-4o"
-        case .gpt4: return "GPT-4"
+        case .gpt4oMini: return "enum.llm.gpt4o_mini".localized
+        case .gpt4o: return "enum.llm.gpt4o".localized
+        case .gpt4: return "enum.llm.gpt4".localized
         }
     }
 }
 
-/// 优化强度
+/// Optimization intensity level
 enum OptimizationLevel: String, CaseIterable {
     case light = "light"
     case medium = "medium"
@@ -155,9 +170,9 @@ enum OptimizationLevel: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .light: return "轻度"
-        case .medium: return "中度"
-        case .heavy: return "重度"
+        case .light: return "enum.optimization.light".localized
+        case .medium: return "enum.optimization.medium".localized
+        case .heavy: return "enum.optimization.heavy".localized
         }
     }
     
@@ -173,22 +188,45 @@ enum OptimizationLevel: String, CaseIterable {
     }
 }
 
-/// 输出风格
+/// Output style
 enum OutputStyle: String, CaseIterable {
     case conversational = "conversational"
     case formal = "formal"
-    
+
     var displayName: String {
         switch self {
-        case .conversational: return "口语化"
-        case .formal: return "书面化"
+        case .conversational: return "enum.style.conversational".localized
+        case .formal: return "enum.style.formal".localized
         }
     }
-    
+
     var additionalPrompt: String {
         switch self {
-        case .conversational: return "保持轻松的对话风格。"
-        case .formal: return "使用正式的书面语风格。"
+        case .conversational: return "Keep a casual conversational style."
+        case .formal: return "Use formal written language style."
+        }
+    }
+}
+
+/// App language preference
+enum AppLanguage: String, CaseIterable {
+    case system = "system"
+    case english = "en"
+    case chinese = "zh-Hans"
+
+    var displayName: String {
+        switch self {
+        case .system: return "enum.language.system".localized
+        case .english: return "enum.language.english".localized
+        case .chinese: return "enum.language.chinese".localized
+        }
+    }
+
+    var languageCode: String? {
+        switch self {
+        case .system: return nil
+        case .english: return "en"
+        case .chinese: return "zh-Hans"
         }
     }
 }

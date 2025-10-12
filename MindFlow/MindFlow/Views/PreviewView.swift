@@ -25,11 +25,11 @@ struct PreviewView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 标题
+            // Title
             HStack {
                 Image(systemName: "doc.text.fill")
                     .foregroundColor(.green)
-                Text("文本预览")
+                Text("preview.title".localized)
                     .font(.headline)
                 Spacer()
             }
@@ -39,9 +39,9 @@ struct PreviewView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // 原始文本
+                    // Original text
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("原始文本：")
+                        Text("preview.original".localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
@@ -54,11 +54,11 @@ struct PreviewView: View {
                     }
                     
                     Divider()
-                    
-                    // 优化后的文本
+
+                    // Optimized text
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("优化后：")
+                            Text("preview.optimized".localized)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
@@ -70,7 +70,7 @@ struct PreviewView: View {
                         }
                         
                         if currentOptimizedText.isEmpty {
-                            Text("未进行优化")
+                            Text("preview.no_optimization".localized)
                                 .foregroundColor(.secondary)
                                 .italic()
                                 .frame(height: 80)
@@ -87,9 +87,9 @@ struct PreviewView: View {
                         }
                     }
                     
-                    // 优化级别选择
+                    // Optimization level selection
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("优化级别：")
+                        Text("preview.optimization_level".localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
@@ -100,7 +100,7 @@ struct PreviewView: View {
                         }
                         .pickerStyle(.segmented)
                         .onChange(of: selectedOptimizationLevel) { _ in
-                            // 当级别改变时，提示用户重新优化
+                            // Prompt user to re-optimize when level changes
                         }
                     }
                 }
@@ -108,16 +108,16 @@ struct PreviewView: View {
             }
             
             Divider()
-            
-            // 操作按钮
+
+            // Action buttons
             HStack(spacing: 12) {
-                // 复制按钮
+                // Copy button
                 Button(action: {
                     copyToClipboard()
                 }) {
                     HStack {
                         Image(systemName: "doc.on.doc")
-                        Text("复制")
+                        Text("preview.copy".localized)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -125,14 +125,14 @@ struct PreviewView: View {
                     .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
-                
-                // 重新优化按钮
+
+                // Re-optimize button
                 Button(action: {
                     reoptimize()
                 }) {
                     HStack {
                         Image(systemName: "sparkles")
-                        Text("重新优化")
+                        Text("preview.reoptimize".localized)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -141,14 +141,14 @@ struct PreviewView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isReoptimizing || result?.originalText.isEmpty == true)
-                
-                // 粘贴按钮
+
+                // Paste button
                 Button(action: {
                     pasteText()
                 }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("粘贴")
+                        Text("preview.paste".localized)
                     }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -160,18 +160,18 @@ struct PreviewView: View {
             }
             .padding(.horizontal)
             .padding(.bottom)
-            
-            // 提示信息
+
+            // Alert messages
             if showCopiedAlert {
-                Text("✓ 已复制到剪贴板")
+                Text("preview.copied".localized)
                     .font(.caption)
                     .foregroundColor(.green)
                     .padding(.horizontal)
                     .transition(.opacity)
             }
-            
+
             if showPastedAlert {
-                Text("✓ 已粘贴到活动窗口")
+                Text("preview.pasted".localized)
                     .font(.caption)
                     .foregroundColor(.green)
                     .padding(.horizontal)
@@ -211,7 +211,7 @@ struct PreviewView: View {
             } catch {
                 await MainActor.run {
                     self.isReoptimizing = false
-                    // TODO: 显示错误提示
+                    // TODO: Show error message
                 }
             }
         }
@@ -219,27 +219,27 @@ struct PreviewView: View {
     
     private func pasteText() {
         let textToPaste = currentOptimizedText.isEmpty ? (result?.originalText ?? "") : currentOptimizedText
-        
-        // 先复制到剪贴板
+
+        // Copy to clipboard first
         ClipboardManager.shared.copy(text: textToPaste)
-        
-        // 如果有辅助功能权限，自动粘贴
+
+        // Auto-paste if accessibility permission is granted
         if PermissionManager.shared.isAccessibilityPermissionGranted {
             ClipboardManager.shared.paste()
-            
+
             showPastedAlert = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 showPastedAlert = false
             }
-            
-            // 自动粘贴后，延迟关闭窗口
+
+            // Close window after auto-paste with delay
             if settings.autoPaste {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     NSApplication.shared.keyWindow?.close()
                 }
             }
         } else {
-            // 没有权限，提示用户手动粘贴
+            // No permission, prompt user to paste manually
             showCopiedAlert = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 showCopiedAlert = false

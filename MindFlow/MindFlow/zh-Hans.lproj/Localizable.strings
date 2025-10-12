@@ -1,0 +1,134 @@
+/*
+  Localizable.strings (Simplified Chinese)
+  MindFlow
+*/
+
+// MARK: - Main Tab
+"tab.recording" = "录音";
+"tab.settings" = "设置";
+
+// MARK: - Recording View
+"recording.ready" = "准备开始录音";
+"recording.start" = "开始录音";
+"recording.recording" = "录音中...";
+"recording.pause" = "暂停";
+"recording.resume" = "继续";
+"recording.stop" = "停止并处理";
+"recording.error" = "出错了";
+"recording.retry" = "重试";
+"recording.shortcut_hint" = "点击下方按钮或使用快捷键 ⌘ Shift V";
+
+// MARK: - Processing States
+"state.ready" = "准备就绪";
+"state.recording" = "录音中...";
+"state.processing" = "处理音频...";
+"state.transcribing" = "转换文字中...";
+"state.transcribing_detail" = "正在将语音转换为文字...";
+"state.optimizing" = "优化文本中...";
+"state.optimizing_detail" = "正在使用 AI 优化文本...";
+"state.completed" = "完成";
+"state.error" = "错误: %@";
+
+// MARK: - Preview View
+"preview.title" = "文本预览";
+"preview.original" = "原始文本：";
+"preview.optimized" = "优化后：";
+"preview.no_optimization" = "未进行优化";
+"preview.optimization_level" = "优化级别：";
+"preview.copy" = "复制";
+"preview.reoptimize" = "重新优化";
+"preview.paste" = "粘贴";
+"preview.copied" = "✓ 已复制到剪贴板";
+"preview.pasted" = "✓ 已粘贴到活动窗口";
+
+// MARK: - Settings View
+"settings.title" = "⚙️ MindFlow 设置";
+"settings.api_config" = "API 配置";
+"settings.llm_config" = "LLM 配置";
+"settings.permissions" = "权限状态";
+"settings.hotkey" = "快捷键";
+"settings.behavior" = "行为";
+"settings.optimization" = "默认优化";
+
+// API Configuration
+"settings.stt_provider" = "STT 提供商";
+"settings.openai_key" = "OpenAI API Key";
+"settings.openai_placeholder" = "输入你的 OpenAI API Key";
+"settings.openai_description" = "用于语音转文字 (Whisper) 和文本优化 (GPT)";
+"settings.elevenlabs_key" = "ElevenLabs API Key (可选)";
+"settings.elevenlabs_placeholder" = "输入你的 ElevenLabs API Key";
+"settings.elevenlabs_description" = "备用 STT 服务";
+"settings.save" = "保存";
+"settings.validating" = "验证中...";
+"settings.valid" = "✓ 已保存";
+"settings.invalid" = "✗ 无效";
+
+// LLM Configuration
+"settings.model_selection" = "模型选择";
+
+// Permissions
+"settings.microphone_permission" = "麦克风权限";
+"settings.accessibility_permission" = "辅助功能权限";
+"settings.request_permission" = "请求权限";
+"settings.open_settings" = "打开设置";
+"settings.accessibility_note" = "辅助功能权限用于全局热键和自动粘贴。如不授予，可手动复制文本。";
+
+// Hotkey
+"settings.global_trigger" = "全局触发";
+"settings.hotkey_description" = "在任何应用中按此快捷键即可开始录音";
+
+// Behavior
+"settings.auto_paste" = "处理完成后自动粘贴";
+"settings.launch_at_login" = "登录时启动";
+"settings.show_notifications" = "显示桌面通知";
+
+// Language
+"settings.language" = "语言";
+"settings.language_description" = "选择应用语言";
+
+// Optimization
+"settings.optimization_intensity" = "优化强度";
+"settings.output_style" = "输出风格";
+
+// MARK: - Enums Display Names
+
+// STT Provider (no translation needed - brand names)
+"enum.stt.openai" = "OpenAI";
+"enum.stt.elevenlabs" = "ElevenLabs";
+
+// LLM Models
+"enum.llm.gpt4o_mini" = "GPT-4o Mini (推荐)";
+"enum.llm.gpt4o" = "GPT-4o";
+"enum.llm.gpt4" = "GPT-4";
+
+// Optimization Levels
+"enum.optimization.light" = "轻度";
+"enum.optimization.medium" = "中度";
+"enum.optimization.heavy" = "重度";
+
+// Output Styles
+"enum.style.conversational" = "口语化";
+"enum.style.formal" = "书面化";
+
+// Language Options
+"enum.language.system" = "跟随系统";
+"enum.language.english" = "English";
+"enum.language.chinese" = "简体中文";
+
+// MARK: - Permission Types
+"permission.microphone" = "麦克风";
+"permission.accessibility" = "辅助功能";
+"permission.microphone_description" = "MindFlow 需要访问麦克风以录制您的语音。";
+"permission.accessibility_description" = "MindFlow 需要辅助功能权限以实现全局热键和自动粘贴功能。如果不授予此权限，您仍可以使用应用，但需要手动复制文本。";
+
+// MARK: - Error Messages
+"error.microphone_required" = "需要麦克风权限才能录音";
+"error.microphone_needed" = "需要麦克风权限";
+"error.recording_failed" = "无法开始录音";
+"error.invalid_audio" = "录音文件无效";
+"error.transcription_failed" = "转录失败: %@";
+
+// MARK: - Alert Messages
+"alert.permission_required" = "需要%@权限";
+"alert.open_system_settings" = "打开系统设置";
+"alert.later" = "稍后";
