@@ -25,6 +25,9 @@ struct MainView: View {
             contentArea
         }
         .frame(minWidth: 500, minHeight: 600)
+        .onReceive(NotificationCenter.default.publisher(for: .switchToRecordingTab)) { _ in
+            selectedTab = .recording
+        }
     }
 
     // MARK: - Components

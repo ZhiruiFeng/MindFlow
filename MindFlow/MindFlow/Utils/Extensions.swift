@@ -8,6 +8,19 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Notification Name Extensions
+
+extension Notification.Name {
+    /// Notification to start recording via keyboard shortcut
+    static let startRecordingShortcut = Notification.Name("startRecordingShortcut")
+
+    /// Notification to stop recording via keyboard shortcut
+    static let stopRecordingShortcut = Notification.Name("stopRecordingShortcut")
+
+    /// Notification to switch to recording tab
+    static let switchToRecordingTab = Notification.Name("switchToRecordingTab")
+}
+
 // MARK: - Color Extensions
 
 extension Color {

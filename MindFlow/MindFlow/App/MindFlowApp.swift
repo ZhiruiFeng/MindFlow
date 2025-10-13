@@ -14,13 +14,16 @@ struct MindFlowApp: App {
     @StateObject private var settings = Settings.shared
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id: "main") {
             ContentView()
                 .environmentObject(authService)
                 .environmentObject(settings)
         }
         .commands {
-            CommandGroup(replacing: .newItem) { }
+            // Keep the File menu but remove "New" command since it doesn't make sense for this app
+            CommandGroup(replacing: .newItem) {
+                // Empty - removes the default "New" command
+            }
         }
         .defaultSize(width: 500, height: 600)
     }

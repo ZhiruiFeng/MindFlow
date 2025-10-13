@@ -33,6 +33,60 @@ class RecordingViewModel: ObservableObject {
         return String(format: "%02d:%02d", minutes, seconds)
     }
 
+    init() {
+        setupNotificationObservers()
+    }
+
+    // MARK: - Notification Observers
+
+    private func setupNotificationObservers() {
+        // Use weak self and automatically remove on dealloc
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleStartRecordingShortcutObjC),
+            name: .startRecordingShortcut,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleStopRecordingShortcutObjC),
+            name: .stopRecordingShortcut,
+            object: nil
+        )
+    }
+
+    @objc private func handleStartRecordingShortcutObjC() {
+        handleStartRecordingShortcut()
+    }
+
+    @objc private func handleStopRecordingShortcutObjC() {
+        handleStopRecordingShortcut()
+    }
+
+    private func handleStartRecordingShortcut() {
+        // Start a new recording session
+        // If already completed or in error state, reset first
+        switch state {
+        case .idle:
+            startRecording()
+        case .completed, .error:
+            // Reset to idle and start fresh recording
+            reset()
+            startRecording()
+        case .recording, .processing, .transcribing, .optimizing:
+            // Already in progress, ignore
+            print("⚠️ Recording already in progress, ignoring shortcut")
+        }
+    }
+
+    private func handleStopRecordingShortcut() {
+        // Only stop recording if we're currently recording
+        if case .recording = state {
+            stopRecording()
+        }
+    }
+
     func checkPermissions() {
         if !permissionManager.isMicrophonePermissionGranted {
             state = .error("error.microphone_required".localized)
@@ -58,8 +112,10 @@ class RecordingViewModel: ObservableObject {
 
         // Start timer
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, !self.isPaused else { return }
-            self.duration += 0.1
+            Task { @MainActor [weak self] in
+                guard let self = self, !self.isPaused else { return }
+                self.duration += 0.1
+            }
         }
     }
 
