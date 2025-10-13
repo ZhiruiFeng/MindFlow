@@ -139,6 +139,8 @@ apikeys.json
 Config.xcconfig
 **/Secrets.plist
 **/APIKeys.plist
+**/Configuration.plist
+!**/Configuration.plist.template
 
 # Privacy - User Data
 user_data/

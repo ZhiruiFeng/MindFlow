@@ -10,10 +10,18 @@ import SwiftUI
 @main
 struct MindFlowApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var authService = SupabaseAuthService()
+    @StateObject private var settings = Settings.shared
 
     var body: some Scene {
         WindowGroup {
-            MainView()
+            if settings.hasCompletedLoginFlow {
+                MainView()
+                    .environmentObject(authService)
+            } else {
+                LoginView()
+                    .environmentObject(authService)
+            }
         }
         .commands {
             CommandGroup(replacing: .newItem) { }

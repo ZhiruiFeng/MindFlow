@@ -26,6 +26,17 @@
 	<string>MindFlow 需要访问麦克风以录制您的语音并转换为文字。</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>MindFlow 需要发送键盘事件以实现自动粘贴功能。</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.mindflow.app</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>Supabase OAuth</string>
+		</dict>
+	</array>
 </dict>
 </plist>
 

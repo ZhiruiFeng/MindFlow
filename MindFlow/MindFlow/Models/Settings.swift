@@ -86,6 +86,13 @@ class Settings: ObservableObject {
         }
     }
 
+    /// Whether user has completed initial login flow (can be skipped)
+    @Published var hasCompletedLoginFlow: Bool {
+        didSet {
+            UserDefaults.standard.set(hasCompletedLoginFlow, forKey: "has_completed_login_flow")
+        }
+    }
+
     // MARK: - Initialization
     
     private init() {
@@ -114,8 +121,11 @@ class Settings: ObservableObject {
         let languageRaw = UserDefaults.standard.string(forKey: "app_language") ?? AppLanguage.system.rawValue
         self.appLanguage = AppLanguage(rawValue: languageRaw) ?? .system
 
-        // Apply language setting
-        LocalizationManager.shared.setLanguage(appLanguage)
+        // Load login flow completion status
+        self.hasCompletedLoginFlow = UserDefaults.standard.bool(forKey: "has_completed_login_flow")
+
+        // Apply language setting (after all properties are initialized)
+        LocalizationManager.shared.setLanguage(self.appLanguage)
     }
     
     // MARK: - Helper Methods

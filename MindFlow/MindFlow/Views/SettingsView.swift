@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
+    @EnvironmentObject private var authService: SupabaseAuthService
 
     @State private var openAIKeyInput: String = Settings.shared.openAIKey
     @State private var elevenLabsKeyInput: String = Settings.shared.elevenLabsKey
@@ -17,6 +18,7 @@ struct SettingsView: View {
     @State private var isValidatingElevenLabs = false
     @State private var openAIValidationStatus: ValidationStatus = .none
     @State private var elevenLabsValidationStatus: ValidationStatus = .none
+    @State private var showLoginSheet = false
     
     var body: some View {
         ScrollView {
@@ -26,6 +28,50 @@ struct SettingsView: View {
                     .font(.largeTitle)
                     .bold()
                     .padding(.bottom, 8)
+
+                // Account section
+                GroupBox(label: Label("Account", systemImage: "person.circle")) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if authService.isAuthenticated {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(authService.userName ?? "User")
+                                        .font(.headline)
+                                    if let email = authService.userEmail {
+                                        Text(email)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                Button("Sign Out") {
+                                    authService.signOut()
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                        } else {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Guest Mode")
+                                        .font(.headline)
+                                    Text("Sign in to sync with ZephyrOS")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Button("Sign In") {
+                                    showLoginSheet = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        }
+                    }
+                    .padding()
+                }
+                .sheet(isPresented: $showLoginSheet) {
+                    LoginView()
+                        .environmentObject(authService)
+                }
 
                 // API Configuration section
                 GroupBox(label: Label("settings.api_config".localized, systemImage: "key.fill")) {
@@ -257,11 +303,11 @@ struct SettingsView: View {
     }
     
     // MARK: - Helper Methods
-    
+
     private func validateOpenAIKey() {
         isValidatingOpenAI = true
         openAIValidationStatus = .validating
-        
+
         Task {
             let isValid = await settings.validateOpenAIKey()
             await MainActor.run {
@@ -270,11 +316,11 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     private func validateElevenLabsKey() {
         isValidatingElevenLabs = true
         elevenLabsValidationStatus = .validating
-        
+
         Task {
             let isValid = await settings.validateElevenLabsKey()
             await MainActor.run {

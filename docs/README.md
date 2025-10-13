@@ -15,6 +15,7 @@ Complete documentation for the MindFlow macOS voice-to-text assistant.
 #### For Developers
 - **[Setup Guide](./guides/setup-guide.md)** - Complete development environment setup
 - **[Xcode Setup](./guides/xcode-setup.md)** - Xcode-specific configuration steps
+- **[Authentication Setup](./guides/authentication-setup.md)** - Supabase OAuth configuration
 
 ---
 
@@ -58,7 +59,8 @@ docs/
 ├── guides/
 │   ├── quick-start.md          # 5-minute quick start
 │   ├── setup-guide.md          # Development environment setup
-│   └── xcode-setup.md          # Xcode configuration
+│   ├── xcode-setup.md          # Xcode configuration
+│   └── authentication-setup.md # Supabase OAuth setup
 │
 ├── reference/
 │   ├── api-integration.md      # API usage and costs
@@ -85,7 +87,8 @@ docs/
 **Setting up development?** Follow these:
 1. [Setup Guide](./guides/setup-guide.md) - General setup
 2. [Xcode Setup](./guides/xcode-setup.md) - Xcode-specific steps
-3. [Project Structure](./reference/project-structure.md) - Understand the codebase
+3. [Authentication Setup](./guides/authentication-setup.md) - Configure OAuth
+4. [Project Structure](./reference/project-structure.md) - Understand the codebase
 
 **Need help?** Check:
 1. [Build Fixes](./troubleshooting/build-fixes.md) - Build errors
