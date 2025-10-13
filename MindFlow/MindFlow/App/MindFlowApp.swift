@@ -15,17 +15,40 @@ struct MindFlowApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if settings.hasCompletedLoginFlow {
-                MainView()
-                    .environmentObject(authService)
-            } else {
-                LoginView()
-                    .environmentObject(authService)
-            }
+            ContentView()
+                .environmentObject(authService)
+                .environmentObject(settings)
         }
         .commands {
             CommandGroup(replacing: .newItem) { }
         }
         .defaultSize(width: 500, height: 600)
+    }
+
+    @MainActor
+    struct ContentView: View {
+        @EnvironmentObject private var authService: SupabaseAuthService
+        @EnvironmentObject private var settings: Settings
+        @State private var isInitialized = false
+
+        var body: some View {
+            Group {
+                if isInitialized {
+                    if settings.hasCompletedLoginFlow {
+                        MainView()
+                    } else {
+                        LoginView()
+                    }
+                } else {
+                    ProgressView()
+                }
+            }
+            .onAppear {
+                Task {
+                    await authService.restoreSession()
+                    isInitialized = true
+                }
+            }
+        }
     }
 }
