@@ -98,11 +98,17 @@ struct PreviewView: View {
                                 Text("Teacher's Note")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
+
+                                // Extract and display score if present
+                                if let score = extractScore(from: teacherNote) {
+                                    Text(score)
+                                        .font(.subheadline)
+                                        .bold()
+                                        .foregroundColor(.orange)
+                                }
                             }
 
-                            Text(teacherNote)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            FormattedTeacherNoteView(text: teacherNote)
                                 .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.yellow.opacity(0.1))
@@ -275,6 +281,57 @@ struct PreviewView: View {
             showCopiedAlert = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                 showCopiedAlert = false
+            }
+        }
+    }
+
+    private func extractScore(from text: String) -> String? {
+        // Extract "Score: X/10" pattern
+        let pattern = #"Score:\s*(\d+/10)"#
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let scoreRange = Range(match.range(at: 1), in: text) {
+            return String(text[scoreRange])
+        }
+        return nil
+    }
+}
+
+// MARK: - Formatted Teacher Note View
+
+struct FormattedTeacherNoteView: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            let lines = text.components(separatedBy: .newlines)
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty && !trimmed.contains("Score:") {
+                    if trimmed.hasPrefix("•") || trimmed.hasPrefix("-") || trimmed.hasPrefix("*") {
+                        // Bullet point
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("•")
+                                .font(.body)
+                                .foregroundColor(.orange)
+                            Text(trimmed.dropFirst().trimmingCharacters(in: .whitespaces))
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                        }
+                    } else if trimmed.hasSuffix(":") {
+                        // Section header
+                        Text(trimmed)
+                            .font(.body)
+                            .bold()
+                            .foregroundColor(.primary)
+                            .padding(.top, 4)
+                    } else {
+                        // Regular text
+                        Text(trimmed)
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }

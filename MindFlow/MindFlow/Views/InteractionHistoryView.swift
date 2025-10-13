@@ -294,6 +294,14 @@ struct InteractionRowView: View {
                             Text("Teacher's Note:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+
+                            // Extract and display score if present
+                            if let score = extractScore(from: explanation) {
+                                Text(score)
+                                    .font(.caption)
+                                    .bold()
+                                    .foregroundColor(.orange)
+                            }
                         }
 
                         Spacer()
@@ -314,12 +322,15 @@ struct InteractionRowView: View {
                         .buttonStyle(.plain)
                     }
 
-                    // Explanation text
-                    Text(explanation)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(isTeacherNoteExpanded ? nil : 2)
-                        .animation(.easeInOut(duration: 0.2), value: isTeacherNoteExpanded)
+                    // Formatted explanation with bullet points
+                    if isTeacherNoteExpanded {
+                        FormattedTeacherNote(text: explanation)
+                    } else {
+                        Text(cleanTeacherNote(explanation))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
                 }
                 .padding(8)
                 .background(Color.yellow.opacity(0.1))
@@ -358,6 +369,63 @@ struct InteractionRowView: View {
         let minutes = Int(duration) / 60
         let seconds = Int(duration) % 60
         return String(format: "%d:%02d", minutes, seconds)
+    }
+
+    private func extractScore(from text: String) -> String? {
+        // Extract "Score: X/10" pattern
+        let pattern = #"Score:\s*(\d+/10)"#
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+           let scoreRange = Range(match.range(at: 1), in: text) {
+            return String(text[scoreRange])
+        }
+        return nil
+    }
+
+    private func cleanTeacherNote(_ text: String) -> String {
+        // Remove "Score: X/10" for preview
+        let cleaned = text.replacingOccurrences(of: #"Score:\s*\d+/10\s*"#, with: "", options: .regularExpression)
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+// MARK: - Formatted Teacher Note View
+
+struct FormattedTeacherNote: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            let lines = text.components(separatedBy: .newlines)
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty && !trimmed.contains("Score:") {
+                    if trimmed.hasPrefix("•") || trimmed.hasPrefix("-") || trimmed.hasPrefix("*") {
+                        // Bullet point
+                        HStack(alignment: .top, spacing: 6) {
+                            Text("•")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                            Text(trimmed.dropFirst().trimmingCharacters(in: .whitespaces))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    } else if trimmed.hasSuffix(":") {
+                        // Section header
+                        Text(trimmed)
+                            .font(.caption)
+                            .bold()
+                            .foregroundColor(.primary)
+                            .padding(.top, 2)
+                    } else {
+                        // Regular text
+                        Text(trimmed)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
     }
 }
 

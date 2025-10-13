@@ -43,20 +43,32 @@ class LLMService {
 
         Your task:
         1. First, optimize the user's text following the guidelines above
-        2. Then, provide a brief educational explanation (2-3 sentences) about what improvements were made and why
+        2. Then, provide specific teaching guidance like a teacher giving improvement feedback
 
         Output format (use exactly this structure):
         REFINED_TEXT:
         [Your optimized version here]
 
         TEACHER_NOTE:
-        [Your educational explanation here]
+        Score: [X/10]
+
+        Key improvements (max 3 points):
+        • [Specific point with before/after example or vocabulary suggestion]
+        • [Specific point with before/after example or vocabulary suggestion]
+        • [Specific point with before/after example or vocabulary suggestion]
+
+        Teaching guidelines for TEACHER_NOTE:
+        - Give specific, actionable feedback with examples (e.g., "Instead of 'very good', use 'excellent' or 'outstanding' for stronger impact")
+        - Show which vocabulary or sentence structure would better express the intended meaning
+        - Limit to maximum 3 most important improvement points
+        - Provide a score out of 10 for the original text
+        - DO NOT give generic comments like "removed filler words" or "improved expression"
+        - Focus on WHY a specific word or structure is better for the meaning
 
         Important rules:
         - Keep the core meaning and key information
         - Maintain paragraphing if multiple sentences exist
         - Add appropriate punctuation
-        - Be concise but clear in your teaching explanation
         """
 
         let result = try await callOpenAI(
