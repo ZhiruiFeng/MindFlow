@@ -5,6 +5,7 @@
 
 // MARK: - Main Tab
 "tab.recording" = "录音";
+"tab.history" = "历史";
 "tab.settings" = "设置";
 
 // MARK: - Recording View
@@ -16,6 +17,7 @@
 "recording.stop" = "停止并处理";
 "recording.error" = "出错了";
 "recording.retry" = "重试";
+"recording.new" = "新录音";
 "recording.shortcut_hint" = "点击下方按钮或使用快捷键 ⌘ Shift V";
 
 // MARK: - Processing States
@@ -81,6 +83,8 @@
 "settings.auto_paste" = "处理完成后自动粘贴";
 "settings.launch_at_login" = "登录时启动";
 "settings.show_notifications" = "显示桌面通知";
+"settings.enable_teacher_notes" = "启用教师讲解";
+"settings.teacher_notes_description" = "生成关于表达改进的教育性讲解";
 
 // Language
 "settings.language" = "语言";

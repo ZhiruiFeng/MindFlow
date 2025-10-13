@@ -78,6 +78,13 @@ class Settings: ObservableObject {
         }
     }
 
+    /// Enable teacher explanations for expression improvements
+    @Published var enableTeacherNotes: Bool {
+        didSet {
+            UserDefaults.standard.set(enableTeacherNotes, forKey: "enable_teacher_notes")
+        }
+    }
+
     /// App language preference
     @Published var appLanguage: AppLanguage {
         didSet {
@@ -116,6 +123,7 @@ class Settings: ObservableObject {
         self.autoPaste = UserDefaults.standard.bool(forKey: "auto_paste")
         self.launchAtLogin = UserDefaults.standard.bool(forKey: "launch_at_login")
         self.showNotifications = UserDefaults.standard.bool(forKey: "show_notifications")
+        self.enableTeacherNotes = UserDefaults.standard.bool(forKey: "enable_teacher_notes")
 
         // Load language preference
         let languageRaw = UserDefaults.standard.string(forKey: "app_language") ?? AppLanguage.system.rawValue

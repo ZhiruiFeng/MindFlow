@@ -87,12 +87,35 @@ struct PreviewView: View {
                         }
                     }
                     
+                    // Teacher's Note (if available)
+                    if let teacherNote = result?.teacherExplanation, !teacherNote.isEmpty {
+                        Divider()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "lightbulb.fill")
+                                    .foregroundColor(.yellow)
+                                Text("Teacher's Note")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Text(teacherNote)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.yellow.opacity(0.1))
+                                .cornerRadius(8)
+                        }
+                    }
+
                     // Optimization level selection
                     VStack(alignment: .leading, spacing: 8) {
                         Text("preview.optimization_level".localized)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
-                        
+
                         Picker("", selection: $selectedOptimizationLevel) {
                             ForEach(OptimizationLevel.allCases, id: \.self) { level in
                                 Text(level.displayName).tag(level)
@@ -183,9 +206,14 @@ struct PreviewView: View {
     // MARK: - Actions
     
     private func copyToClipboard() {
-        let textToCopy = currentOptimizedText.isEmpty ? (result?.originalText ?? "") : currentOptimizedText
-        ClipboardManager.shared.copy(text: textToCopy)
-        
+        // Only copy refined text (not original)
+        guard !currentOptimizedText.isEmpty else {
+            // If no optimized text, don't copy anything
+            return
+        }
+
+        ClipboardManager.shared.copy(text: currentOptimizedText)
+
         showCopiedAlert = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showCopiedAlert = false
@@ -218,10 +246,14 @@ struct PreviewView: View {
     }
     
     private func pasteText() {
-        let textToPaste = currentOptimizedText.isEmpty ? (result?.originalText ?? "") : currentOptimizedText
+        // Only paste refined text (not original)
+        guard !currentOptimizedText.isEmpty else {
+            // If no optimized text, don't paste anything
+            return
+        }
 
         // Copy to clipboard first
-        ClipboardManager.shared.copy(text: textToPaste)
+        ClipboardManager.shared.copy(text: currentOptimizedText)
 
         // Auto-paste if accessibility permission is granted
         if PermissionManager.shared.isAccessibilityPermissionGranted {

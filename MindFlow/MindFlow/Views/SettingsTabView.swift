@@ -132,6 +132,15 @@ struct SettingsTabView: View {
                     }
                     .pickerStyle(.radioGroup)
                 }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("settings.enable_teacher_notes".localized, isOn: $settings.enableTeacherNotes)
+                    Text("settings.teacher_notes_description".localized)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             .padding()
         }
@@ -371,6 +380,42 @@ struct SettingsTabView: View {
                 isValidatingElevenLabs = false
                 elevenLabsValidationStatus = isValid ? .valid : .invalid
             }
+        }
+    }
+}
+
+// MARK: - Validation Status
+
+enum ValidationStatus {
+    case none
+    case validating
+    case valid
+    case invalid
+
+    var icon: String {
+        switch self {
+        case .none: return ""
+        case .validating: return "arrow.clockwise"
+        case .valid: return "checkmark.circle.fill"
+        case .invalid: return "xmark.circle.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .none: return .primary
+        case .validating: return .blue
+        case .valid: return .green
+        case .invalid: return .red
+        }
+    }
+
+    var message: String {
+        switch self {
+        case .none: return ""
+        case .validating: return "settings.validating".localized
+        case .valid: return "settings.valid".localized
+        case .invalid: return "settings.invalid".localized
         }
     }
 }

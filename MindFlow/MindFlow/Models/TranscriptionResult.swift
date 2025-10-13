@@ -15,19 +15,47 @@ struct TranscriptionResult: Identifiable, Codable {
     let timestamp: Date
     let duration: TimeInterval
     let audioFilePath: String?
-    
+
+    // API metadata
+    let transcriptionProvider: String?
+    let transcriptionModel: String?
+    let optimizationModel: String?
+    let optimizationLevel: String?
+    let outputStyle: String?
+    let teacherExplanation: String?
+
+    // Server sync
+    var serverRecordId: UUID?
+    var isSynced: Bool = false
+
     init(id: UUID = UUID(),
          originalText: String,
          optimizedText: String? = nil,
          timestamp: Date = Date(),
          duration: TimeInterval = 0,
-         audioFilePath: String? = nil) {
+         audioFilePath: String? = nil,
+         transcriptionProvider: String? = nil,
+         transcriptionModel: String? = nil,
+         optimizationModel: String? = nil,
+         optimizationLevel: String? = nil,
+         outputStyle: String? = nil,
+         teacherExplanation: String? = nil,
+         serverRecordId: UUID? = nil,
+         isSynced: Bool = false) {
         self.id = id
         self.originalText = originalText
         self.optimizedText = optimizedText
         self.timestamp = timestamp
         self.duration = duration
         self.audioFilePath = audioFilePath
+        self.transcriptionProvider = transcriptionProvider
+        self.transcriptionModel = transcriptionModel
+        self.optimizationModel = optimizationModel
+        self.optimizationLevel = optimizationLevel
+        self.outputStyle = outputStyle
+        self.teacherExplanation = teacherExplanation
+        self.serverRecordId = serverRecordId
+        self.isSynced = isSynced
     }
 }
 

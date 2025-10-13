@@ -75,4 +75,16 @@ final class ConfigurationManager {
         }
         return redirectURI
     }
+
+    // MARK: - API Configuration
+
+    var zmemoryAPIURL: String {
+        guard let api = configuration?["API"] as? [String: String],
+              let url = api["ZMemoryURL"],
+              url != "YOUR_ZMEMORY_API_URL_HERE" else {
+            print("⚠️ Warning: ZMemory API URL not configured, using default")
+            return "https://zmemory.zephyros.app"
+        }
+        return url
+    }
 }

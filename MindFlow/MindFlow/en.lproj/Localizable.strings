@@ -5,6 +5,7 @@
 
 // MARK: - Main Tab
 "tab.recording" = "Recording";
+"tab.history" = "History";
 "tab.settings" = "Settings";
 
 // MARK: - Recording View
@@ -16,6 +17,7 @@
 "recording.stop" = "Stop & Process";
 "recording.error" = "An Error Occurred";
 "recording.retry" = "Retry";
+"recording.new" = "New Recording";
 "recording.shortcut_hint" = "Click the button below or use shortcut ⌘ Shift V";
 
 // MARK: - Processing States
@@ -81,6 +83,8 @@
 "settings.auto_paste" = "Auto-paste after processing";
 "settings.launch_at_login" = "Launch at login";
 "settings.show_notifications" = "Show desktop notifications";
+"settings.enable_teacher_notes" = "Enable teacher explanations";
+"settings.teacher_notes_description" = "Generate educational explanations about expression improvements";
 
 // Language
 "settings.language" = "Language";

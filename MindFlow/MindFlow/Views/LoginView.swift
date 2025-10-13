@@ -18,10 +18,12 @@ struct LoginView: View {
         VStack(spacing: 30) {
             Spacer()
 
-            // App Logo or Icon
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 80))
-                .foregroundColor(.accentColor)
+            // App Logo
+            Image("AppLogo")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 140, height: 140)
+                .shadow(radius: 8)
 
             // Welcome Text
             VStack(spacing: 8) {

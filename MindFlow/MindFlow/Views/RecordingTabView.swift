@@ -26,7 +26,30 @@ struct RecordingTabView: View {
                 ProcessingStateView(viewModel: viewModel)
             case .completed:
                 if let result = viewModel.result {
-                    PreviewView(result: result)
+                    VStack(spacing: 0) {
+                        PreviewView(result: result)
+
+                        Divider()
+
+                        // New Recording button
+                        Button(action: {
+                            viewModel.reset()
+                        }) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("recording.new".localized)
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal)
+                        .padding(.bottom)
+                    }
                 }
             case .error(let message):
                 ErrorStateView(message: message, viewModel: viewModel)

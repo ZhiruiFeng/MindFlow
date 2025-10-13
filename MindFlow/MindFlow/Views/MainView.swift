@@ -13,6 +13,7 @@ import SwiftUI
 struct MainView: View {
     @StateObject private var viewModel = RecordingViewModel()
     @ObservedObject private var localizationManager = LocalizationManager.shared
+    @EnvironmentObject var authService: SupabaseAuthService
     @State private var selectedTab: MainTab = .recording
 
     // MARK: - Body
@@ -52,13 +53,16 @@ struct MainView: View {
             }
         }
         .pickerStyle(.segmented)
-        .frame(width: 120)
+        .frame(width: 180)
     }
 
     private var contentArea: some View {
         TabView(selection: $selectedTab) {
             RecordingTabView(viewModel: viewModel)
                 .tag(MainTab.recording)
+
+            InteractionHistoryView()
+                .tag(MainTab.history)
 
             SettingsTabView()
                 .tag(MainTab.settings)
@@ -72,11 +76,13 @@ struct MainView: View {
 /// Main view tab type
 enum MainTab: CaseIterable {
     case recording
+    case history
     case settings
 
     var icon: String {
         switch self {
         case .recording: return "mic.circle.fill"
+        case .history: return "clock.arrow.circlepath"
         case .settings: return "gear"
         }
     }
@@ -84,6 +90,7 @@ enum MainTab: CaseIterable {
     var title: String {
         switch self {
         case .recording: return "tab.recording".localized
+        case .history: return "tab.history".localized
         case .settings: return "tab.settings".localized
         }
     }

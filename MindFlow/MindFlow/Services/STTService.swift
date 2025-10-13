@@ -7,6 +7,13 @@
 
 import Foundation
 
+/// Transcription result with metadata
+struct TranscriptionMetadata {
+    let text: String
+    let provider: String
+    let model: String
+}
+
 /// Speech-to-text service
 class STTService {
     static let shared = STTService()
@@ -16,16 +23,28 @@ class STTService {
     }
 
     private init() {}
-    
+
     // MARK: - Public Methods
-    
-    /// Transcribe audio file
+
+    /// Transcribe audio file (returns text only, for backward compatibility)
     func transcribe(audioURL: URL) async throws -> String {
         switch settings.sttProvider {
         case .openAI:
             return try await transcribeWithOpenAI(audioURL: audioURL)
         case .elevenLabs:
             return try await transcribeWithElevenLabs(audioURL: audioURL)
+        }
+    }
+
+    /// Transcribe audio file with metadata
+    func transcribeWithMetadata(audioURL: URL) async throws -> TranscriptionMetadata {
+        switch settings.sttProvider {
+        case .openAI:
+            let text = try await transcribeWithOpenAI(audioURL: audioURL)
+            return TranscriptionMetadata(text: text, provider: "OpenAI", model: "whisper-1")
+        case .elevenLabs:
+            let text = try await transcribeWithElevenLabs(audioURL: audioURL)
+            return TranscriptionMetadata(text: text, provider: "ElevenLabs", model: "scribe_v1")
         }
     }
     
