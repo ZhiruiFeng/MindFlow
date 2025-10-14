@@ -368,6 +368,144 @@ export class StorageManager {
       throw new StorageError('Failed to import data');
     }
   }
+
+  /**
+   * Save Supabase configuration
+   * @param {Object} config - Supabase config (url, anonKey, redirectURI)
+   * @returns {Promise<void>}
+   */
+  async saveSupabaseConfig(config) {
+    try {
+      await this.storage.sync.set({
+        [STORAGE_KEYS.SUPABASE_CONFIG]: config
+      });
+      log('Supabase config saved');
+    } catch (error) {
+      logError('Failed to save Supabase config:', error);
+      throw new StorageError('Failed to save Supabase configuration');
+    }
+  }
+
+  /**
+   * Get Supabase configuration
+   * @returns {Promise<Object|null>}
+   */
+  async getSupabaseConfig() {
+    try {
+      const result = await this.storage.sync.get(STORAGE_KEYS.SUPABASE_CONFIG);
+      return result[STORAGE_KEYS.SUPABASE_CONFIG] || null;
+    } catch (error) {
+      logError('Failed to get Supabase config:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save Supabase access token
+   * @param {string} token
+   * @returns {Promise<void>}
+   */
+  async saveSupabaseAccessToken(token) {
+    try {
+      await this.storage.local.set({
+        [STORAGE_KEYS.SUPABASE_ACCESS_TOKEN]: token
+      });
+      log('Supabase access token saved');
+    } catch (error) {
+      logError('Failed to save access token:', error);
+    }
+  }
+
+  /**
+   * Get Supabase access token
+   * @returns {Promise<string|null>}
+   */
+  async getSupabaseAccessToken() {
+    try {
+      const result = await this.storage.local.get(STORAGE_KEYS.SUPABASE_ACCESS_TOKEN);
+      return result[STORAGE_KEYS.SUPABASE_ACCESS_TOKEN] || null;
+    } catch (error) {
+      logError('Failed to get access token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save Supabase refresh token
+   * @param {string} token
+   * @returns {Promise<void>}
+   */
+  async saveSupabaseRefreshToken(token) {
+    try {
+      await this.storage.local.set({
+        [STORAGE_KEYS.SUPABASE_REFRESH_TOKEN]: token
+      });
+      log('Supabase refresh token saved');
+    } catch (error) {
+      logError('Failed to save refresh token:', error);
+    }
+  }
+
+  /**
+   * Get Supabase refresh token
+   * @returns {Promise<string|null>}
+   */
+  async getSupabaseRefreshToken() {
+    try {
+      const result = await this.storage.local.get(STORAGE_KEYS.SUPABASE_REFRESH_TOKEN);
+      return result[STORAGE_KEYS.SUPABASE_REFRESH_TOKEN] || null;
+    } catch (error) {
+      logError('Failed to get refresh token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Save Supabase user info
+   * @param {Object} userInfo
+   * @returns {Promise<void>}
+   */
+  async saveSupabaseUserInfo(userInfo) {
+    try {
+      await this.storage.local.set({
+        [STORAGE_KEYS.SUPABASE_USER_INFO]: userInfo
+      });
+      log('Supabase user info saved');
+    } catch (error) {
+      logError('Failed to save user info:', error);
+    }
+  }
+
+  /**
+   * Get Supabase user info
+   * @returns {Promise<Object|null>}
+   */
+  async getSupabaseUserInfo() {
+    try {
+      const result = await this.storage.local.get(STORAGE_KEYS.SUPABASE_USER_INFO);
+      return result[STORAGE_KEYS.SUPABASE_USER_INFO] || null;
+    } catch (error) {
+      logError('Failed to get user info:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clear all Supabase credentials
+   * @returns {Promise<void>}
+   */
+  async clearSupabaseCredentials() {
+    try {
+      await this.storage.local.remove([
+        STORAGE_KEYS.SUPABASE_ACCESS_TOKEN,
+        STORAGE_KEYS.SUPABASE_REFRESH_TOKEN,
+        STORAGE_KEYS.SUPABASE_USER_INFO
+      ]);
+      log('Supabase credentials cleared');
+    } catch (error) {
+      logError('Failed to clear Supabase credentials:', error);
+    }
+  }
 }
 
 // Export singleton instance

@@ -7,11 +7,14 @@
     "storage",
     "activeTab",
     "scripting",
-    "offscreen"
+    "offscreen",
+    "identity"
   ],
   "host_permissions": [
     "https://api.openai.com/*",
     "https://api.elevenlabs.io/*",
+    "https://zmemory.zephyros.app/*",
+    "https://*.supabase.co/*",
     "<all_urls>"
   ],
   "background": {

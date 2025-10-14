@@ -12,6 +12,8 @@ import audioRecorder from '../lib/audio-recorder.js';
 import sttService from '../lib/stt-service.js';
 import llmService from '../lib/llm-service.js';
 import storageManager from '../lib/storage-manager.js';
+import supabaseAuth from '../lib/supabase-auth.js';
+import zmemoryAPI from '../lib/zmemory-api.js';
 
 class PopupController {
   constructor() {
@@ -21,6 +23,7 @@ class PopupController {
     this.waveformInterval = null;
     this.currentResult = null;
     this.hasActiveField = false; // Track if user clicked in a text field
+    this.recordingStartTime = null; // Track recording start time for duration
 
     // DOM elements (will be initialized after DOM loads)
     this.elements = {};
@@ -60,6 +63,7 @@ class PopupController {
     try {
       await sttService.initialize();
       await llmService.initialize();
+      await supabaseAuth.initialize();
       log('Services initialized');
     } catch (error) {
       logError('Service initialization error:', error);
@@ -236,6 +240,9 @@ class PopupController {
       // Start recording
       await audioRecorder.startRecording();
 
+      // Track recording start time
+      this.recordingStartTime = Date.now();
+
       // Update state
       this.setState(RECORDING_STATES.RECORDING);
 
@@ -312,11 +319,17 @@ class PopupController {
 
       log('Transcription:', result.text);
 
+      // Calculate audio duration
+      const audioDuration = this.recordingStartTime
+        ? (Date.now() - this.recordingStartTime) / 1000
+        : null;
+
       // Store original text
       this.currentResult = {
         original: result.text,
         provider: result.provider,
-        model: result.model
+        model: result.model,
+        audioDuration: audioDuration
       };
 
       // Optimize
@@ -366,6 +379,9 @@ class PopupController {
           level: this.currentResult.level
         });
       }
+
+      // Sync to ZephyrOS backend if authenticated
+      await this.syncToBackend();
 
     } catch (error) {
       logError('Optimization error:', error);
@@ -664,6 +680,61 @@ class PopupController {
   stopWaveform() {
     this.elements.waveform.classList.remove('active');
     // CSS animation stops when 'active' class is removed
+  }
+
+  /**
+   * Sync interaction to ZephyrOS backend
+   */
+  async syncToBackend() {
+    log('🔄 syncToBackend called');
+
+    // Only sync if user is authenticated
+    if (!zmemoryAPI.isAuthenticated()) {
+      log('⚠️ Not authenticated, skipping backend sync');
+      return;
+    }
+
+    if (!this.currentResult) {
+      log('⚠️ No current result, skipping backend sync');
+      return;
+    }
+
+    try {
+      log('📤 Syncing interaction to ZephyrOS backend...');
+
+      const settings = await storageManager.getSettings();
+
+      // Map provider names to backend format (OpenAI or ElevenLabs - capitalized)
+      const transcriptionApi = this.currentResult.provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI';
+
+      // Map output style: 'casual' -> 'conversational', 'formal' -> 'formal'
+      const outputStyle = settings.outputStyle === 'casual' ? 'conversational' : 'formal';
+
+      const interaction = {
+        transcriptionApi: transcriptionApi,
+        transcriptionModel: this.currentResult.model || 'whisper-1',
+        optimizationModel: settings.llmModel || 'gpt-4o-mini',
+        optimizationLevel: this.currentResult.level || settings.optimizationLevel,
+        outputStyle: outputStyle,
+        originalText: this.currentResult.original,
+        optimizedText: this.currentResult.optimized,
+        teacherNotes: this.currentResult.teacherNotes || null,
+        audioDurationSeconds: this.currentResult.audioDuration || null
+      };
+
+      log('📦 Interaction object to sync:', interaction);
+
+      const result = await zmemoryAPI.createInteraction(interaction);
+
+      log('✅ Interaction synced successfully:', result.id);
+      this.showToast('✓ Synced to ZephyrOS', 2000);
+    } catch (error) {
+      logError('❌ Backend sync error:', error);
+      logError('Error message:', error.message);
+      logError('Error stack:', error.stack);
+      // Don't show error to user, sync is optional
+      log('Failed to sync to backend, continuing...');
+    }
   }
 }
 

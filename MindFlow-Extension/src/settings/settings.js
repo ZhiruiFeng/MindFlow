@@ -7,6 +7,8 @@ import { log, logError } from '../common/utils.js';
 import storageManager from '../lib/storage-manager.js';
 import sttService from '../lib/stt-service.js';
 import llmService from '../lib/llm-service.js';
+import supabaseAuth from '../lib/supabase-auth.js';
+import zmemoryAPI from '../lib/zmemory-api.js';
 
 class SettingsController {
   constructor() {
@@ -30,6 +32,11 @@ class SettingsController {
   async setup() {
     this.cacheElements();
     this.attachEventListeners();
+
+    // Initialize auth service
+    await supabaseAuth.initialize();
+    await this.updateAuthUI();
+
     await this.loadSettings();
     await this.updateStorageInfo();
 
@@ -45,6 +52,19 @@ class SettingsController {
    */
   cacheElements() {
     this.elements = {
+      // Authentication
+      authSignedOut: document.getElementById('auth-signed-out'),
+      authSignedIn: document.getElementById('auth-signed-in'),
+      signInBtn: document.getElementById('sign-in-btn'),
+      signOutBtn: document.getElementById('sign-out-btn'),
+      userName: document.getElementById('user-name'),
+      userEmail: document.getElementById('user-email'),
+      supabaseUrl: document.getElementById('supabase-url'),
+      supabaseAnonKey: document.getElementById('supabase-anon-key'),
+      supabaseToggle: document.getElementById('supabase-toggle'),
+      zmemoryUrl: document.getElementById('zmemory-url'),
+      saveSupabaseConfig: document.getElementById('save-supabase-config'),
+
       // API Keys
       openaiApiKey: document.getElementById('openai-api-key'),
       openaiToggle: document.getElementById('openai-toggle'),
@@ -93,6 +113,14 @@ class SettingsController {
    * Attach event listeners
    */
   attachEventListeners() {
+    // Authentication
+    this.elements.signInBtn.addEventListener('click', () => this.handleSignIn());
+    this.elements.signOutBtn.addEventListener('click', () => this.handleSignOut());
+    this.elements.saveSupabaseConfig.addEventListener('click', () => this.handleSaveSupabaseConfig());
+    this.elements.supabaseToggle.addEventListener('click', () =>
+      this.togglePasswordVisibility(this.elements.supabaseAnonKey)
+    );
+
     // API Key toggles
     this.elements.openaiToggle.addEventListener('click', () =>
       this.togglePasswordVisibility(this.elements.openaiApiKey)
@@ -418,6 +446,99 @@ class SettingsController {
     setTimeout(() => {
       this.elements.toast.style.display = 'none';
     }, duration);
+  }
+
+  /**
+   * Update authentication UI
+   */
+  async updateAuthUI() {
+    const userInfo = supabaseAuth.getUserInfo();
+
+    if (userInfo.isAuthenticated) {
+      // Show authenticated view
+      this.elements.authSignedOut.style.display = 'none';
+      this.elements.authSignedIn.style.display = 'flex';
+      this.elements.userName.textContent = userInfo.name || 'User';
+      this.elements.userEmail.textContent = userInfo.email || '';
+    } else {
+      // Show signed out view
+      this.elements.authSignedOut.style.display = 'block';
+      this.elements.authSignedIn.style.display = 'none';
+    }
+
+    // Load Supabase config
+    const config = await storageManager.getSupabaseConfig();
+    if (config) {
+      this.elements.supabaseUrl.value = config.url || '';
+      this.elements.supabaseAnonKey.value = config.anonKey || '';
+      this.elements.zmemoryUrl.value = config.zmemoryUrl || 'https://zmemory.zephyros.app';
+    }
+  }
+
+  /**
+   * Handle sign in
+   */
+  async handleSignIn() {
+    try {
+      this.elements.signInBtn.disabled = true;
+      this.elements.signInBtn.innerHTML = '<span class="btn-icon">⏳</span> Signing in...';
+
+      await supabaseAuth.signIn();
+
+      this.showToast('✓ Signed in successfully');
+      await this.updateAuthUI();
+    } catch (error) {
+      logError('Sign in error:', error);
+      this.showToast('⚠️ Sign in failed: ' + error.message, 5000);
+    } finally {
+      this.elements.signInBtn.disabled = false;
+      this.elements.signInBtn.innerHTML = '<span class="btn-icon">🔐</span> Sign in with Google';
+    }
+  }
+
+  /**
+   * Handle sign out
+   */
+  async handleSignOut() {
+    try {
+      await supabaseAuth.signOut();
+      this.showToast('✓ Signed out');
+      await this.updateAuthUI();
+    } catch (error) {
+      logError('Sign out error:', error);
+      this.showToast('⚠️ Sign out failed');
+    }
+  }
+
+  /**
+   * Handle save Supabase configuration
+   */
+  async handleSaveSupabaseConfig() {
+    try {
+      const url = this.elements.supabaseUrl.value.trim();
+      const anonKey = this.elements.supabaseAnonKey.value.trim();
+      const zmemoryUrl = this.elements.zmemoryUrl.value.trim();
+
+      if (!url || !anonKey) {
+        this.showToast('⚠️ Please enter both Supabase URL and Anon Key');
+        return;
+      }
+
+      await supabaseAuth.saveConfiguration(url, anonKey);
+
+      if (zmemoryUrl) {
+        zmemoryAPI.setBaseURL(zmemoryUrl);
+        // Store in config
+        const config = await storageManager.getSupabaseConfig();
+        config.zmemoryUrl = zmemoryUrl;
+        await storageManager.saveSupabaseConfig(config);
+      }
+
+      this.showToast('✓ Configuration saved');
+    } catch (error) {
+      logError('Save config error:', error);
+      this.showToast('⚠️ Failed to save configuration');
+    }
   }
 }
 

@@ -9,6 +9,12 @@ export const STORAGE_KEYS = {
   OPENAI_API_KEY: 'apiKey_openai',
   ELEVENLABS_API_KEY: 'apiKey_elevenlabs',
 
+  // Supabase Authentication
+  SUPABASE_CONFIG: 'supabase_config',
+  SUPABASE_ACCESS_TOKEN: 'supabase_access_token',
+  SUPABASE_REFRESH_TOKEN: 'supabase_refresh_token',
+  SUPABASE_USER_INFO: 'supabase_user_info',
+
   // Settings
   SETTINGS: 'settings',
 
