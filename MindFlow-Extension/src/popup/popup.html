@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow - Voice to Text</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="icon">🎤</span>
+        <h1 class="title">MindFlow</h1>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings">
+        <span>⚙️</span>
+      </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+      <!-- Idle/Recording View -->
+      <div id="recording-view" class="view active">
+        <!-- Status -->
+        <div class="status-section">
+          <div id="status-indicator" class="status-indicator">
+            <div class="pulse-ring"></div>
+            <div class="pulse-dot"></div>
+          </div>
+          <p id="status-text" class="status-text">Ready to record</p>
+        </div>
+
+        <!-- Timer -->
+        <div id="timer" class="timer">00:00</div>
+
+        <!-- Audio Waveform (Visual feedback) -->
+        <div id="waveform" class="waveform">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+          <button id="start-btn" class="btn btn-primary">
+            <span class="btn-icon">🎤</span>
+            Start Recording
+          </button>
+          <button id="pause-btn" class="btn btn-secondary" style="display: none;">
+            <span class="btn-icon">⏸</span>
+            Pause
+          </button>
+          <button id="stop-btn" class="btn btn-danger" style="display: none;">
+            <span class="btn-icon">⏹</span>
+            Stop & Process
+          </button>
+        </div>
+
+        <!-- Processing indicator -->
+        <div id="processing-indicator" class="processing-indicator" style="display: none;">
+          <div class="spinner"></div>
+          <p id="processing-text" class="processing-text">Processing...</p>
+        </div>
+      </div>
+
+      <!-- Result View -->
+      <div id="result-view" class="view" style="display: none;">
+        <!-- Original Text -->
+        <div class="text-section">
+          <label class="text-label">Original:</label>
+          <div id="original-text" class="text-box text-box-original">
+            <!-- Original transcription will appear here -->
+          </div>
+        </div>
+
+        <!-- Optimized Text -->
+        <div class="text-section">
+          <label class="text-label">Optimized:</label>
+          <div id="optimized-text" class="text-box text-box-optimized">
+            <!-- Optimized text will appear here -->
+          </div>
+        </div>
+
+        <!-- Optimization Level Indicator -->
+        <div class="optimization-info">
+          <span id="optimization-level" class="optimization-level">Medium</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+          <button id="copy-btn" class="btn btn-secondary">
+            <span class="btn-icon">📋</span>
+            Copy
+          </button>
+          <button id="reoptimize-btn" class="btn btn-secondary">
+            <span class="btn-icon">✨</span>
+            Re-optimize
+          </button>
+          <button id="insert-btn" class="btn btn-primary">
+            <span class="btn-icon">✓</span>
+            Insert
+          </button>
+        </div>
+
+        <!-- New Recording Button -->
+        <button id="new-recording-btn" class="btn btn-text">
+          <span class="btn-icon">🔄</span>
+          New Recording
+        </button>
+      </div>
+
+      <!-- Error View -->
+      <div id="error-view" class="view" style="display: none;">
+        <div class="error-content">
+          <span class="error-icon">⚠️</span>
+          <h3 class="error-title">Oops!</h3>
+          <p id="error-message" class="error-message">
+            <!-- Error message will appear here -->
+          </p>
+          <button id="retry-btn" class="btn btn-primary">
+            Try Again
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text">
+        Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> to start
+      </p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" style="display: none;">
+    <span id="toast-message"></span>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

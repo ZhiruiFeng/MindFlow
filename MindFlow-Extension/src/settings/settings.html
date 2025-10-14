@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <span class="icon">🎤</span>
+          <h1 class="title">MindFlow Settings</h1>
+        </div>
+        <button id="close-btn" class="close-btn" title="Close">×</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+      <!-- API Configuration Section -->
+      <section class="section">
+        <h2 class="section-title">API Configuration</h2>
+        <p class="section-description">
+          MindFlow uses your own API keys to ensure privacy and control over costs.
+        </p>
+
+        <!-- OpenAI API Key -->
+        <div class="form-group">
+          <label class="label" for="openai-api-key">
+            OpenAI API Key
+            <span class="required">*</span>
+          </label>
+          <div class="input-group">
+            <input
+              type="password"
+              id="openai-api-key"
+              class="input"
+              placeholder="sk-..."
+              autocomplete="off"
+            />
+            <button id="openai-toggle" class="btn-icon" title="Show/Hide">👁️</button>
+          </div>
+          <div class="input-footer">
+            <span id="openai-status" class="status"></span>
+            <button id="openai-test" class="btn-link">Test API Key</button>
+          </div>
+          <p class="help-text">
+            Get your API key from <a href="https://platform.openai.com/api-keys" target="_blank">OpenAI Platform</a>
+          </p>
+        </div>
+
+        <!-- ElevenLabs API Key (Optional) -->
+        <div class="form-group">
+          <label class="label" for="elevenlabs-api-key">
+            ElevenLabs API Key
+            <span class="optional">(Optional)</span>
+          </label>
+          <div class="input-group">
+            <input
+              type="password"
+              id="elevenlabs-api-key"
+              class="input"
+              placeholder="Optional alternative for speech-to-text"
+              autocomplete="off"
+            />
+            <button id="elevenlabs-toggle" class="btn-icon" title="Show/Hide">👁️</button>
+          </div>
+          <div class="input-footer">
+            <span id="elevenlabs-status" class="status"></span>
+            <button id="elevenlabs-test" class="btn-link">Test API Key</button>
+          </div>
+          <p class="help-text">
+            Get your API key from <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a>
+          </p>
+        </div>
+
+        <!-- STT Provider Selection -->
+        <div class="form-group">
+          <label class="label">Speech-to-Text Provider</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="stt-provider" value="openai" checked />
+              <span>OpenAI Whisper</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="stt-provider" value="elevenlabs" />
+              <span>ElevenLabs</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Text Optimization Section -->
+      <section class="section">
+        <h2 class="section-title">Text Optimization</h2>
+
+        <!-- LLM Model -->
+        <div class="form-group">
+          <label class="label" for="llm-model">Model</label>
+          <select id="llm-model" class="select">
+            <option value="gpt-4o-mini" selected>GPT-4o Mini (Recommended)</option>
+            <option value="gpt-4o">GPT-4o (More capable, higher cost)</option>
+            <option value="gpt-4">GPT-4 (Legacy, highest cost)</option>
+          </select>
+          <p class="help-text">
+            GPT-4o Mini offers the best balance of quality and cost (~$0.0001/request)
+          </p>
+        </div>
+
+        <!-- Optimization Level -->
+        <div class="form-group">
+          <label class="label">Optimization Level</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="optimization-level" value="light" />
+              <span>Light</span>
+              <small>Remove obvious filler words only</small>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="optimization-level" value="medium" checked />
+              <span>Medium</span>
+              <small>Fix grammar and improve clarity</small>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="optimization-level" value="heavy" />
+              <span>Heavy</span>
+              <small>Full rewrite to formal, polished text</small>
+            </label>
+          </div>
+        </div>
+
+        <!-- Output Style -->
+        <div class="form-group">
+          <label class="label">Output Style</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="output-style" value="casual" checked />
+              <span>Casual</span>
+              <small>Natural, conversational tone</small>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="output-style" value="formal" />
+              <span>Formal</span>
+              <small>Professional, business tone</small>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- Behavior Section -->
+      <section class="section">
+        <h2 class="section-title">Behavior</h2>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="auto-insert" checked />
+            <span>Automatically insert text after optimization</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="show-notifications" checked />
+            <span>Show notifications</span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="keep-history" />
+            <span>Keep local history (last 50 entries)</span>
+          </label>
+          <p class="help-text">
+            History is stored locally only and never synced
+          </p>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="save-btn" class="btn btn-primary">
+          Save Settings
+        </button>
+        <button id="reset-btn" class="btn btn-secondary">
+          Reset to Defaults
+        </button>
+      </div>
+
+      <!-- Storage Info -->
+      <section class="section storage-info">
+        <h3 class="section-subtitle">Storage Usage</h3>
+        <div class="storage-stats">
+          <div class="stat">
+            <span class="stat-label">Sync Storage:</span>
+            <span id="sync-usage" class="stat-value">-</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Local Storage:</span>
+            <span id="local-usage" class="stat-value">-</span>
+          </div>
+        </div>
+        <button id="clear-history-btn" class="btn-link">Clear History</button>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text">
+        MindFlow v<span id="version">0.1.0</span> •
+        <a href="https://github.com/yourusername/MindFlow" target="_blank">GitHub</a> •
+        <a href="../docs/privacy-policy.md" target="_blank">Privacy</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" style="display: none;">
+    <span id="toast-message"></span>
+  </div>
+
+  <script type="module" src="settings.js"></script>
+</body>
+</html>

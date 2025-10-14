@@ -21,9 +21,14 @@ Complete documentation for the MindFlow macOS voice-to-text assistant.
 
 ## 🏗️ Architecture & Design
 
+### macOS Application
 - **[Design Plan](./architecture/design-plan.md)** - Complete system design and technical stack
 - **[Implementation Summary](./architecture/implementation-summary.md)** - Development summary and code statistics
 - **[Project Structure](./reference/project-structure.md)** - Code organization and module responsibilities
+
+### Chrome Extension
+- **[Chrome Extension Plan](./architecture/chrome-extension-plan.md)** - Browser extension implementation plan and roadmap
+- **[Chrome Extension Architecture](./architecture/chrome-extension-architecture.md)** - Detailed architecture and component design
 
 ---
 
@@ -36,8 +41,12 @@ Complete documentation for the MindFlow macOS voice-to-text assistant.
 
 ## 🔧 Troubleshooting
 
+### macOS Application
 - **[Build Fixes](./troubleshooting/build-fixes.md)** - Common build errors and solutions
 - **[Permission Fixes](./troubleshooting/permission-fixes.md)** - System permission configuration issues
+
+### Chrome Extension
+- **[Chrome Extension Permissions](./troubleshooting/chrome-extension-permissions.md)** - Microphone and browser permission issues
 
 ---
 
@@ -47,6 +56,8 @@ For coding standards and regulations, see:
 - **[Coding Regulations](../spec/coding-regulations/)** - Project coding standards
   - [General Standards](../spec/coding-regulations/general-standards.md)
   - [Swift & SwiftUI Standards](../spec/coding-regulations/swift-swiftui-standards.md)
+  - [Chrome Extension Standards](../spec/coding-regulations/chrome-extension-standards.md)
+  - [Documentation Standards](../spec/coding-regulations/documentation-standards.md)
 
 ---
 
@@ -67,12 +78,15 @@ docs/
 │   └── project-structure.md    # Code organization
 │
 ├── architecture/
-│   ├── design-plan.md          # System design
-│   └── implementation-summary.md # Development summary
+│   ├── design-plan.md          # macOS system design
+│   ├── implementation-summary.md # Development summary
+│   ├── chrome-extension-plan.md # Chrome extension plan
+│   └── chrome-extension-architecture.md # Chrome extension architecture
 │
 └── troubleshooting/
     ├── build-fixes.md          # Build issue solutions
-    └── permission-fixes.md     # Permission configuration
+    ├── permission-fixes.md     # Permission configuration
+    └── chrome-extension-permissions.md # Chrome extension permissions
 ```
 
 ---
