@@ -265,12 +265,24 @@ class PopupController {
     try {
       if (audioRecorder.isPausedState()) {
         audioRecorder.resumeRecording();
-        this.elements.pauseBtn.innerHTML = '<span class="btn-icon">⏸</span> Pause';
+        // Clear and rebuild button content safely
+        this.elements.pauseBtn.textContent = '';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'btn-icon';
+        iconSpan.textContent = '⏸';
+        this.elements.pauseBtn.appendChild(iconSpan);
+        this.elements.pauseBtn.appendChild(document.createTextNode(' Pause'));
         this.elements.statusText.textContent = 'Recording...';
         this.startWaveform();
       } else {
         audioRecorder.pauseRecording();
-        this.elements.pauseBtn.innerHTML = '<span class="btn-icon">▶️</span> Resume';
+        // Clear and rebuild button content safely
+        this.elements.pauseBtn.textContent = '';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'btn-icon';
+        iconSpan.textContent = '▶️';
+        this.elements.pauseBtn.appendChild(iconSpan);
+        this.elements.pauseBtn.appendChild(document.createTextNode(' Resume'));
         this.elements.statusText.textContent = 'Paused';
         this.stopWaveform();
       }

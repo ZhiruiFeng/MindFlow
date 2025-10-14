@@ -24,17 +24,25 @@ Complete documentation for the MindFlow macOS voice-to-text assistant.
 ### macOS Application
 - **[Design Plan](./architecture/design-plan.md)** - Complete system design and technical stack
 - **[Implementation Summary](./architecture/implementation-summary.md)** - Development summary and code statistics
+- **[macOS Local-First Sync Plan](./architecture/macos-local-first-sync-plan.md)** - Local-first architecture with cloud sync
 - **[Project Structure](./reference/project-structure.md)** - Code organization and module responsibilities
 
 ### Chrome Extension
 - **[Chrome Extension Plan](./architecture/chrome-extension-plan.md)** - Browser extension implementation plan and roadmap
 - **[Chrome Extension Architecture](./architecture/chrome-extension-architecture.md)** - Detailed architecture and component design
 
+### Features & Configuration
+- **[Configurable Auto-Sync Threshold](./architecture/configurable-auto-sync-threshold.md)** - Auto-sync configuration and behavior
+
+### Data & Storage
+- **[Local Storage Deep Dive](./architecture/local-storage-deep-dive.md)** - CoreData implementation and local-first architecture
+
 ---
 
 ## 📖 Technical Reference
 
 - **[API Integration](./reference/api-integration.md)** - OpenAI API integration details and cost analysis
+- **[Supabase Auth API Integration](./reference/supabase-auth-api-integration.md)** - Authentication and API integration with Supabase
 - **[Project Structure](./reference/project-structure.md)** - File structure and data flow
 
 ---
@@ -44,6 +52,7 @@ Complete documentation for the MindFlow macOS voice-to-text assistant.
 ### macOS Application
 - **[Build Fixes](./troubleshooting/build-fixes.md)** - Common build errors and solutions
 - **[Permission Fixes](./troubleshooting/permission-fixes.md)** - System permission configuration issues
+- **[Local Sync Debugging Guide](./troubleshooting/local-sync-debugging-guide.md)** - Debug local CoreData sync issues
 
 ### Chrome Extension
 - **[Chrome Extension Permissions](./troubleshooting/chrome-extension-permissions.md)** - Microphone and browser permission issues
@@ -71,21 +80,27 @@ docs/
 │   ├── quick-start.md          # 5-minute quick start
 │   ├── setup-guide.md          # Development environment setup
 │   ├── xcode-setup.md          # Xcode configuration
-│   └── authentication-setup.md # Supabase OAuth setup
+│   ├── authentication-setup.md # Supabase OAuth setup
+│   └── phase1-coredata-setup-steps.md # CoreData setup guide
 │
 ├── reference/
 │   ├── api-integration.md      # API usage and costs
+│   ├── supabase-auth-api-integration.md # Supabase integration
 │   └── project-structure.md    # Code organization
 │
 ├── architecture/
 │   ├── design-plan.md          # macOS system design
 │   ├── implementation-summary.md # Development summary
 │   ├── chrome-extension-plan.md # Chrome extension plan
-│   └── chrome-extension-architecture.md # Chrome extension architecture
+│   ├── chrome-extension-architecture.md # Chrome extension architecture
+│   ├── macos-local-first-sync-plan.md # Local-first sync design
+│   ├── configurable-auto-sync-threshold.md # Auto-sync configuration
+│   └── local-storage-deep-dive.md # CoreData implementation
 │
 └── troubleshooting/
     ├── build-fixes.md          # Build issue solutions
     ├── permission-fixes.md     # Permission configuration
+    ├── local-sync-debugging-guide.md # CoreData sync debugging
     └── chrome-extension-permissions.md # Chrome extension permissions
 ```
 
@@ -102,7 +117,8 @@ docs/
 1. [Setup Guide](./guides/setup-guide.md) - General setup
 2. [Xcode Setup](./guides/xcode-setup.md) - Xcode-specific steps
 3. [Authentication Setup](./guides/authentication-setup.md) - Configure OAuth
-4. [Project Structure](./reference/project-structure.md) - Understand the codebase
+4. [CoreData Setup](./guides/phase1-coredata-setup-steps.md) - CoreData configuration
+5. [Project Structure](./reference/project-structure.md) - Understand the codebase
 
 **Need help?** Check:
 1. [Build Fixes](./troubleshooting/build-fixes.md) - Build errors

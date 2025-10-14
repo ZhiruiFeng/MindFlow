@@ -491,7 +491,13 @@ class SettingsController {
   async handleSignIn() {
     try {
       this.elements.signInBtn.disabled = true;
-      this.elements.signInBtn.innerHTML = '<span class="btn-icon">⏳</span> Signing in...';
+      // Update button content safely
+      this.elements.signInBtn.textContent = '';
+      const loadingIcon = document.createElement('span');
+      loadingIcon.className = 'btn-icon';
+      loadingIcon.textContent = '⏳';
+      this.elements.signInBtn.appendChild(loadingIcon);
+      this.elements.signInBtn.appendChild(document.createTextNode(' Signing in...'));
 
       await supabaseAuth.signIn();
 
@@ -502,7 +508,13 @@ class SettingsController {
       this.showToast('⚠️ Sign in failed: ' + error.message, 5000);
     } finally {
       this.elements.signInBtn.disabled = false;
-      this.elements.signInBtn.innerHTML = '<span class="btn-icon">🔐</span> Sign in with Google';
+      // Restore button content safely
+      this.elements.signInBtn.textContent = '';
+      const icon = document.createElement('span');
+      icon.className = 'btn-icon';
+      icon.textContent = '🔐';
+      this.elements.signInBtn.appendChild(icon);
+      this.elements.signInBtn.appendChild(document.createTextNode(' Sign in with Google'));
     }
   }
 

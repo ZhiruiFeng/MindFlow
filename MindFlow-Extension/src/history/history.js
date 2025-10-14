@@ -202,18 +202,31 @@ class HistoryController {
    */
   renderHistory() {
     if (this.filteredHistory.length === 0 && this.history.length > 0) {
-      // Has history but nothing matches filter/search
-      this.elements.historyList.innerHTML = `
-        <div class="empty-state" style="min-height: 200px;">
-          <div class="empty-icon">🔍</div>
-          <h3>No Results Found</h3>
-          <p>Try adjusting your search or filter.</p>
-        </div>
-      `;
+      // Has history but nothing matches filter/search - create empty state safely
+      this.elements.historyList.textContent = '';
+
+      const emptyState = document.createElement('div');
+      emptyState.className = 'empty-state';
+      emptyState.style.minHeight = '200px';
+
+      const icon = document.createElement('div');
+      icon.className = 'empty-icon';
+      icon.textContent = '🔍';
+
+      const heading = document.createElement('h3');
+      heading.textContent = 'No Results Found';
+
+      const text = document.createElement('p');
+      text.textContent = 'Try adjusting your search or filter.';
+
+      emptyState.appendChild(icon);
+      emptyState.appendChild(heading);
+      emptyState.appendChild(text);
+      this.elements.historyList.appendChild(emptyState);
       return;
     }
 
-    this.elements.historyList.innerHTML = '';
+    this.elements.historyList.textContent = '';
 
     this.filteredHistory.forEach(entry => {
       const item = this.createHistoryItem(entry);
@@ -232,8 +245,6 @@ class HistoryController {
     const date = new Date(entry.timestamp);
     const dateStr = this.formatDate(date);
 
-    const levelBadge = this.getLevelBadge(entry.level);
-
     // Determine sync status
     const isAuthenticated = zmemoryAPI.isAuthenticated();
 
@@ -244,31 +255,77 @@ class HistoryController {
       audioDuration: entry.audioDuration
     });
 
-    const syncStatus = entry.syncedToBackend
-      ? '<span class="sync-badge synced" title="Synced to ZephyrOS">✓ Synced</span>'
-      : (isAuthenticated
-          ? '<button class="sync-btn" data-id="' + entry.id + '" title="Sync to ZephyrOS">↑ Sync</button>'
-          : '<span class="sync-badge not-synced" title="Sign in to sync">Local only</span>');
+    // Build structure safely using DOM methods
+    const header = document.createElement('div');
+    header.className = 'history-item-header';
 
-    const durationBadge = entry.audioDuration
-      ? `<span class="duration-badge">${Math.round(entry.audioDuration)}s</span>`
-      : '';
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'history-item-date';
+    dateSpan.textContent = dateStr;
 
-    item.innerHTML = `
-      <div class="history-item-header">
-        <span class="history-item-date">${dateStr}</span>
-        <div class="history-item-actions">
-          <button class="icon-btn copy-btn" title="Copy" data-id="${entry.id}">📋</button>
-          <button class="icon-btn delete-btn" title="Delete" data-id="${entry.id}">🗑️</button>
-        </div>
-      </div>
-      <div class="history-item-text">${this.escapeHtml(entry.optimized || entry.original)}</div>
-      <div class="history-item-footer">
-        ${levelBadge}
-        ${durationBadge}
-        ${syncStatus}
-      </div>
-    `;
+    const actions = document.createElement('div');
+    actions.className = 'history-item-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'icon-btn copy-btn';
+    copyBtn.title = 'Copy';
+    copyBtn.dataset.id = entry.id;
+    copyBtn.textContent = '📋';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn delete-btn';
+    deleteBtn.title = 'Delete';
+    deleteBtn.dataset.id = entry.id;
+    deleteBtn.textContent = '🗑️';
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+    header.appendChild(dateSpan);
+    header.appendChild(actions);
+
+    const textDiv = document.createElement('div');
+    textDiv.className = 'history-item-text';
+    textDiv.textContent = entry.optimized || entry.original;
+
+    const footer = document.createElement('div');
+    footer.className = 'history-item-footer';
+
+    // Add level badge
+    footer.appendChild(this.getLevelBadge(entry.level));
+
+    // Add duration badge if available
+    if (entry.audioDuration) {
+      const durationBadge = document.createElement('span');
+      durationBadge.className = 'duration-badge';
+      durationBadge.textContent = Math.round(entry.audioDuration) + 's';
+      footer.appendChild(durationBadge);
+    }
+
+    // Add sync status
+    if (entry.syncedToBackend) {
+      const syncBadge = document.createElement('span');
+      syncBadge.className = 'sync-badge synced';
+      syncBadge.title = 'Synced to ZephyrOS';
+      syncBadge.textContent = '✓ Synced';
+      footer.appendChild(syncBadge);
+    } else if (isAuthenticated) {
+      const syncBtn = document.createElement('button');
+      syncBtn.className = 'sync-btn';
+      syncBtn.dataset.id = entry.id;
+      syncBtn.title = 'Sync to ZephyrOS';
+      syncBtn.textContent = '↑ Sync';
+      footer.appendChild(syncBtn);
+    } else {
+      const syncBadge = document.createElement('span');
+      syncBadge.className = 'sync-badge not-synced';
+      syncBadge.title = 'Sign in to sync';
+      syncBadge.textContent = 'Local only';
+      footer.appendChild(syncBadge);
+    }
+
+    item.appendChild(header);
+    item.appendChild(textDiv);
+    item.appendChild(footer);
 
     // Click to view details (except on buttons)
     item.addEventListener('click', (e) => {
@@ -505,7 +562,7 @@ class HistoryController {
   }
 
   /**
-   * Get level badge HTML
+   * Get level badge element (returns DOM element, not HTML string)
    */
   getLevelBadge(level) {
     const levelMap = {
@@ -514,7 +571,10 @@ class HistoryController {
       heavy: 'Heavy'
     };
     const text = levelMap[level] || 'Medium';
-    return `<span class="badge ${level || 'medium'}">${text}</span>`;
+    const badge = document.createElement('span');
+    badge.className = `badge ${level || 'medium'}`;
+    badge.textContent = text;
+    return badge;
   }
 
   /**

@@ -208,10 +208,10 @@ class MindFlowAPIClient {
 
     private func getAccessToken() -> String? {
         let token = UserDefaults.standard.string(forKey: "supabase_access_token")
-        if let token = token {
-            print("🔑 [MindFlowAPI] Access token found (length: \(token.count))")
+        if token != nil {
+            Logger.debug("Access token found", category: .auth)
         } else {
-            print("⚠️ [MindFlowAPI] No access token found in UserDefaults")
+            Logger.warning("No access token found", category: .auth)
         }
         return token
     }
