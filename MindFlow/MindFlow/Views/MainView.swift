@@ -56,13 +56,16 @@ struct MainView: View {
             }
         }
         .pickerStyle(.segmented)
-        .frame(width: 180)
+        .frame(width: 220)
     }
 
     private var contentArea: some View {
         TabView(selection: $selectedTab) {
             RecordingTabView(viewModel: viewModel)
                 .tag(MainTab.recording)
+
+            LocalHistoryView()
+                .tag(MainTab.localHistory)
 
             InteractionHistoryView()
                 .tag(MainTab.history)
@@ -79,12 +82,14 @@ struct MainView: View {
 /// Main view tab type
 enum MainTab: CaseIterable {
     case recording
+    case localHistory
     case history
     case settings
 
     var icon: String {
         switch self {
         case .recording: return "mic.circle.fill"
+        case .localHistory: return "externaldrive"
         case .history: return "clock.arrow.circlepath"
         case .settings: return "gear"
         }
@@ -93,6 +98,7 @@ enum MainTab: CaseIterable {
     var title: String {
         switch self {
         case .recording: return "tab.recording".localized
+        case .localHistory: return "Local"
         case .history: return "tab.history".localized
         case .settings: return "tab.settings".localized
         }

@@ -2,101 +2,105 @@
 //  InteractionStorageService.swift
 //  MindFlow
 //
-//  Service to manage storage of STT interactions
+//  Service to manage storage of STT interactions with local-first approach
 //
 
 import Foundation
 
 /// Coordinates the storage of MindFlow interactions
+/// Implements local-first storage with conditional backend sync
 class InteractionStorageService {
     static let shared = InteractionStorageService()
 
     private let apiClient: MindFlowAPIClient
+    private let localStorage: LocalInteractionStorage
+
     private var settings: Settings {
         return Settings.shared
     }
 
+    private var isAuthenticated: Bool {
+        // Check if user has valid Supabase session (stored in UserDefaults)
+        return UserDefaults.standard.string(forKey: "supabase_access_token") != nil
+    }
+
     private init() {
         self.apiClient = MindFlowAPIClient.shared
+        self.localStorage = LocalInteractionStorage.shared
     }
 
     // MARK: - Public Methods
 
-    /// Save a complete interaction to the server
+    /// Save interaction with local-first approach and conditional backend sync
     /// - Parameters:
     ///   - transcription: Original transcription text
     ///   - refinedText: Optimized/refined text (optional)
     ///   - audioDuration: Duration of the audio in seconds
-    /// - Returns: The created interaction record
+    /// - Returns: The local interaction record (may or may not be synced)
     @discardableResult
     func saveInteraction(
         transcription: String,
         refinedText: String?,
         audioDuration: Double?
-    ) async throws -> InteractionRecord {
-        print("💾 [StorageService] Saving interaction (transcription only)")
-        print("   📝 Transcription length: \(transcription.count) chars")
-        print("   🎤 STT Provider: \(settings.sttProvider.rawValue)")
-        print("   ⏱️ Duration: \(audioDuration?.rounded() ?? 0)s")
-
-        let request = CreateInteractionRequest(
-            originalTranscription: transcription,
+    ) async throws -> LocalInteraction {
+        // Always save locally first
+        let metadata = InteractionMetadata(
             transcriptionApi: settings.sttProvider.rawValue,
             transcriptionModel: getTranscriptionModel(),
-            refinedText: refinedText,
             optimizationModel: refinedText != nil ? settings.llmModel.rawValue : nil,
             optimizationLevel: refinedText != nil ? settings.optimizationLevel.rawValue : nil,
-            outputStyle: refinedText != nil ? settings.outputStyle.rawValue : nil,
-            teacherExplanation: nil, // Will be generated separately if needed
-            audioDuration: audioDuration,
-            audioFileUrl: nil
+            outputStyle: refinedText != nil ? settings.outputStyle.rawValue : nil
         )
 
-        let record = try await apiClient.createInteraction(request)
-        print("✅ [StorageService] Interaction saved successfully")
-        return record
+        let localInteraction = localStorage.saveInteraction(
+            transcription: transcription,
+            refinedText: refinedText,
+            teacherExplanation: nil,
+            audioDuration: audioDuration,
+            metadata: metadata
+        )
+
+        // Conditionally sync to backend
+        await attemptBackendSync(interaction: localInteraction)
+
+        return localInteraction
     }
 
-    /// Save interaction with teacher explanation
+    /// Save interaction with teacher explanation (local-first approach)
     /// - Parameters:
     ///   - transcription: Original transcription text
     ///   - refinedText: Optimized/refined text
     ///   - teacherExplanation: Educational explanation of improvements
     ///   - audioDuration: Duration of the audio in seconds
-    /// - Returns: The created interaction record
+    /// - Returns: The local interaction record (may or may not be synced)
     @discardableResult
     func saveInteractionWithExplanation(
         transcription: String,
         refinedText: String,
         teacherExplanation: String,
         audioDuration: Double?
-    ) async throws -> InteractionRecord {
-        print("💾 [StorageService] Saving interaction (with optimization & teacher explanation)")
-        print("   📝 Transcription length: \(transcription.count) chars")
-        print("   ✨ Refined text length: \(refinedText.count) chars")
-        print("   👨‍🏫 Teacher explanation length: \(teacherExplanation.count) chars")
-        print("   🎤 STT Provider: \(settings.sttProvider.rawValue)")
-        print("   🤖 LLM Model: \(settings.llmModel.rawValue)")
-        print("   📊 Optimization Level: \(settings.optimizationLevel.rawValue)")
-        print("   🎨 Output Style: \(settings.outputStyle.rawValue)")
-        print("   ⏱️ Duration: \(audioDuration?.rounded() ?? 0)s")
-
-        let request = CreateInteractionRequest(
-            originalTranscription: transcription,
+    ) async throws -> LocalInteraction {
+        // Always save locally first
+        let metadata = InteractionMetadata(
             transcriptionApi: settings.sttProvider.rawValue,
             transcriptionModel: getTranscriptionModel(),
-            refinedText: refinedText,
             optimizationModel: settings.llmModel.rawValue,
             optimizationLevel: settings.optimizationLevel.rawValue,
-            outputStyle: settings.outputStyle.rawValue,
-            teacherExplanation: teacherExplanation,
-            audioDuration: audioDuration,
-            audioFileUrl: nil
+            outputStyle: settings.outputStyle.rawValue
         )
 
-        let record = try await apiClient.createInteraction(request)
-        print("✅ [StorageService] Interaction with explanation saved successfully")
-        return record
+        let localInteraction = localStorage.saveInteraction(
+            transcription: transcription,
+            refinedText: refinedText,
+            teacherExplanation: teacherExplanation,
+            audioDuration: audioDuration,
+            metadata: metadata
+        )
+
+        // Conditionally sync to backend
+        await attemptBackendSync(interaction: localInteraction)
+
+        return localInteraction
     }
 
     /// Fetch all interactions for the current user
@@ -143,7 +147,104 @@ class InteractionStorageService {
         print("✅ [StorageService] Interaction deleted successfully")
     }
 
-    // MARK: - Helper Methods
+    // MARK: - Manual Sync Methods
+
+    /// Manually sync a specific local interaction to backend
+    /// - Parameter interaction: The local interaction to sync
+    /// - Returns: True if sync succeeded, false otherwise
+    @discardableResult
+    func manualSyncToBackend(interaction: LocalInteraction) async -> Bool {
+        guard isAuthenticated else {
+            print("⚠️ [StorageService] Not authenticated, cannot sync")
+            return false
+        }
+
+        return await syncInteractionToBackend(interaction: interaction)
+    }
+
+    /// Sync all pending local interactions to backend
+    /// - Returns: Number of successfully synced interactions
+    @discardableResult
+    func syncAllPending() async -> Int {
+        guard isAuthenticated else {
+            return 0
+        }
+
+        let pendingInteractions = localStorage.fetchPendingSyncInteractions()
+
+        var successCount = 0
+        for interaction in pendingInteractions {
+            if await syncInteractionToBackend(interaction: interaction) {
+                successCount += 1
+            }
+        }
+
+        return successCount
+    }
+
+    // MARK: - Private Helper Methods
+
+    /// Attempt to sync interaction to backend based on settings
+    private func attemptBackendSync(interaction: LocalInteraction) async {
+        // Check if auto-sync is enabled
+        guard settings.autoSyncToBackend else {
+            return
+        }
+
+        // Check authentication
+        guard isAuthenticated else {
+            return
+        }
+
+        // Check duration threshold
+        let duration = interaction.audioDuration
+        let threshold = settings.autoSyncThreshold
+
+        if duration < threshold {
+            return
+        }
+
+        // All conditions met, sync to backend
+        await syncInteractionToBackend(interaction: interaction)
+    }
+
+    /// Sync a specific interaction to backend
+    /// - Parameter interaction: The interaction to sync
+    /// - Returns: True if successful, false otherwise
+    @discardableResult
+    private func syncInteractionToBackend(interaction: LocalInteraction) async -> Bool {
+        do {
+            let request = CreateInteractionRequest(
+                originalTranscription: interaction.originalTranscription,
+                transcriptionApi: interaction.transcriptionApi,
+                transcriptionModel: interaction.transcriptionModel,
+                refinedText: interaction.refinedText,
+                optimizationModel: interaction.optimizationModel,
+                optimizationLevel: interaction.optimizationLevel,
+                outputStyle: interaction.outputStyle,
+                teacherExplanation: interaction.teacherExplanation,
+                audioDuration: interaction.audioDuration > 0 ? interaction.audioDuration : nil,
+                audioFileUrl: interaction.audioFileUrl
+            )
+
+            let record = try await apiClient.createInteraction(request)
+
+            // Mark as synced if we got an ID back
+            guard let backendId = record.id else {
+                print("⚠️ [StorageService] Backend returned no ID")
+                localStorage.markSyncFailed(interaction: interaction, error: "Backend returned no ID")
+                return false
+            }
+
+            localStorage.markAsSynced(interaction: interaction, backendId: backendId)
+            return true
+
+        } catch {
+            print("❌ [StorageService] Failed to sync: \(error.localizedDescription)")
+            localStorage.markSyncFailed(interaction: interaction, error: error.localizedDescription)
+            return false
+        }
+    }
 
     private func getTranscriptionModel() -> String {
         switch settings.sttProvider {

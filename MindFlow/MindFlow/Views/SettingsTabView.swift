@@ -30,6 +30,7 @@ struct SettingsTabView: View {
             VStack(alignment: .leading, spacing: 20) {
                 accountSection
                 languageSection
+                backendSyncSection
                 apiConfigurationSection
                 llmConfigurationSection
                 permissionsSection
@@ -85,6 +86,40 @@ struct SettingsTabView: View {
         .sheet(isPresented: $showLoginSheet) {
             LoginView()
                 .environmentObject(authService)
+        }
+    }
+
+    private var backendSyncSection: some View {
+        GroupBox(label: Label("Backend Sync", systemImage: "arrow.triangle.2.circlepath.circle")) {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Auto-sync to ZephyrOS", isOn: $settings.autoSyncToBackend)
+                    .disabled(!authService.isAuthenticated)
+
+                if !authService.isAuthenticated {
+                    Text("Sign in to enable backend sync")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+
+                Divider()
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Minimum duration for auto-sync")
+                        .font(.headline)
+
+                    HStack {
+                        Slider(value: $settings.autoSyncThreshold, in: 0...300, step: 5)
+                        Text("\(Int(settings.autoSyncThreshold))s")
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 45, alignment: .trailing)
+                    }
+
+                    Text("Recordings shorter than this will be saved locally only. You can manually sync them later from the history view.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding()
         }
     }
 

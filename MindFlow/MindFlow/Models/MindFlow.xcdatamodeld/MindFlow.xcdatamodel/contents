@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24F74" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="LocalInteraction" representedClassName="LocalInteraction" syncable="YES">
+        <attribute name="audioDuration" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="audioFileUrl" optional="YES" attributeType="String"/>
+        <attribute name="backendId" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="createdAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" optional="NO" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lastSyncAttempt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="optimizationLevel" optional="YES" attributeType="String"/>
+        <attribute name="optimizationModel" optional="YES" attributeType="String"/>
+        <attribute name="originalTranscription" optional="NO" attributeType="String"/>
+        <attribute name="outputStyle" optional="YES" attributeType="String"/>
+        <attribute name="refinedText" optional="YES" attributeType="String"/>
+        <attribute name="syncErrorMessage" optional="YES" attributeType="String"/>
+        <attribute name="syncRetryCount" optional="NO" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="syncStatus" optional="YES" attributeType="String" defaultValueString="pending"/>
+        <attribute name="teacherExplanation" optional="YES" attributeType="String"/>
+        <attribute name="transcriptionApi" optional="NO" attributeType="String"/>
+        <attribute name="transcriptionModel" optional="YES" attributeType="String"/>
+        <attribute name="updatedAt" optional="NO" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="userLanguage" optional="YES" attributeType="String"/>
+    </entity>
+    <configuration name="Default" usedWithCloudKit="NO">
+        <memberEntity name="LocalInteraction"/>
+    </configuration>
+</model>

@@ -100,6 +100,22 @@ class Settings: ObservableObject {
         }
     }
 
+    // MARK: - Backend Sync Settings
+
+    /// Automatically sync interactions to ZephyrOS backend
+    @Published var autoSyncToBackend: Bool {
+        didSet {
+            UserDefaults.standard.set(autoSyncToBackend, forKey: "auto_sync_to_backend")
+        }
+    }
+
+    /// Minimum audio duration (in seconds) to trigger auto-sync
+    @Published var autoSyncThreshold: Double {
+        didSet {
+            UserDefaults.standard.set(autoSyncThreshold, forKey: "auto_sync_threshold")
+        }
+    }
+
     // MARK: - Initialization
     
     private init() {
@@ -131,6 +147,20 @@ class Settings: ObservableObject {
 
         // Load login flow completion status
         self.hasCompletedLoginFlow = UserDefaults.standard.bool(forKey: "has_completed_login_flow")
+
+        // Load backend sync settings (with defaults)
+        // Default: auto-sync enabled with 30 second threshold
+        if UserDefaults.standard.object(forKey: "auto_sync_to_backend") == nil {
+            UserDefaults.standard.set(true, forKey: "auto_sync_to_backend")
+        }
+        self.autoSyncToBackend = UserDefaults.standard.bool(forKey: "auto_sync_to_backend")
+
+        self.autoSyncThreshold = UserDefaults.standard.double(forKey: "auto_sync_threshold")
+        if self.autoSyncThreshold == 0 {
+            // Default to 30 seconds if not set
+            self.autoSyncThreshold = 30.0
+            UserDefaults.standard.set(30.0, forKey: "auto_sync_threshold")
+        }
 
         // Apply language setting (after all properties are initialized)
         LocalizationManager.shared.setLanguage(self.appLanguage)
