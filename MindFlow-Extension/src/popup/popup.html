@@ -14,9 +14,14 @@
         <span class="icon">🎤</span>
         <h1 class="title">MindFlow</h1>
       </div>
-      <button id="settings-btn" class="icon-btn" title="Settings">
-        <span>⚙️</span>
-      </button>
+      <div class="header-right">
+        <button id="history-btn" class="icon-btn" title="History">
+          <span>📜</span>
+        </button>
+        <button id="settings-btn" class="icon-btn" title="Settings">
+          <span>⚙️</span>
+        </button>
+      </div>
     </header>
 
     <!-- Main Content -->
@@ -82,6 +87,14 @@
           <label class="text-label">Optimized:</label>
           <div id="optimized-text" class="text-box text-box-optimized">
             <!-- Optimized text will appear here -->
+          </div>
+        </div>
+
+        <!-- Teacher Notes (conditionally shown) -->
+        <div id="teacher-notes-section" class="text-section" style="display: none;">
+          <label class="text-label">Teacher Notes:</label>
+          <div id="teacher-notes" class="text-box text-box-teacher">
+            <!-- Teacher notes will appear here -->
           </div>
         </div>
 

@@ -83,6 +83,12 @@ body {
   gap: var(--spacing-sm);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
 .icon {
   font-size: 24px;
 }
@@ -429,6 +435,14 @@ body {
 .text-box-optimized {
   background-color: #F0F9FF;
   border-color: var(--color-primary);
+}
+
+.text-box-teacher {
+  background-color: #FFF9E6;
+  border-color: #FFD700;
+  font-size: 13px;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
 }
 
 .text-box:empty::before {

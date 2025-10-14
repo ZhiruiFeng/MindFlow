@@ -68,6 +68,7 @@ class SettingsController {
       autoInsert: document.getElementById('auto-insert'),
       showNotifications: document.getElementById('show-notifications'),
       keepHistory: document.getElementById('keep-history'),
+      showTeacherNotes: document.getElementById('show-teacher-notes'),
 
       // Actions
       saveBtn: document.getElementById('save-btn'),
@@ -140,6 +141,7 @@ class SettingsController {
     this.elements.autoInsert.addEventListener('change', autoSave);
     this.elements.showNotifications.addEventListener('change', autoSave);
     this.elements.keepHistory.addEventListener('change', autoSave);
+    this.elements.showTeacherNotes.addEventListener('change', autoSave);
   }
 
   /**
@@ -186,6 +188,7 @@ class SettingsController {
       this.elements.autoInsert.checked = settings.autoInsert;
       this.elements.showNotifications.checked = settings.showNotifications;
       this.elements.keepHistory.checked = settings.keepHistory;
+      this.elements.showTeacherNotes.checked = settings.showTeacherNotes;
 
       log('Settings loaded');
     } catch (error) {
@@ -230,6 +233,7 @@ class SettingsController {
         llmModel: this.elements.llmModel.value,
         optimizationLevel,
         outputStyle,
+        showTeacherNotes: this.elements.showTeacherNotes.checked,
         autoInsert: this.elements.autoInsert.checked,
         showNotifications: this.elements.showNotifications.checked,
         keepHistory: this.elements.keepHistory.checked

@@ -43,6 +43,7 @@ export class LLMService {
     this.model = settings.llmModel || LLM_MODELS.GPT_4O_MINI;
     this.optimizationLevel = settings.optimizationLevel || OPTIMIZATION_LEVELS.MEDIUM;
     this.outputStyle = settings.outputStyle || OUTPUT_STYLES.CASUAL;
+    this.showTeacherNotes = settings.showTeacherNotes || false;
 
     // Get OpenAI API key (LLM always uses OpenAI)
     this.apiKey = await storageManager.getAPIKey('openai');
@@ -54,7 +55,8 @@ export class LLMService {
     log('LLMService initialized:', {
       model: this.model,
       level: this.optimizationLevel,
-      style: this.outputStyle
+      style: this.outputStyle,
+      teacherNotes: this.showTeacherNotes
     });
   }
 
@@ -64,7 +66,8 @@ export class LLMService {
    * @param {Object} options - Optimization options
    * @param {string} options.level - Optimization level override
    * @param {string} options.style - Output style override
-   * @returns {Promise<string>} Optimized text
+   * @param {boolean} options.includeTeacherNotes - Whether to include teacher notes
+   * @returns {Promise<string|Object>} Optimized text or {refinedText, teacherNotes}
    * @throws {APIError} If optimization fails
    */
   async optimizeText(text, options = {}) {
@@ -84,16 +87,24 @@ export class LLMService {
     // Use provided options or defaults
     const level = options.level || this.optimizationLevel;
     const style = options.style || this.outputStyle;
+    const includeTeacherNotes = options.includeTeacherNotes !== undefined
+      ? options.includeTeacherNotes
+      : this.showTeacherNotes;
 
-    log(`Optimizing text (${level}, ${style})...`);
+    log(`Optimizing text (${level}, ${style}, teacherNotes: ${includeTeacherNotes})...`);
 
     try {
-      const systemPrompt = this.buildSystemPrompt(level, style);
-      const optimizedText = await this.callChatAPI(text, systemPrompt);
+      const systemPrompt = this.buildSystemPrompt(level, style, includeTeacherNotes);
+      const result = await this.callChatAPI(text, systemPrompt);
 
       log('Optimization completed');
 
-      return optimizedText;
+      // Parse result if teacher notes are included
+      if (includeTeacherNotes) {
+        return this.parseOptimizationResult(result);
+      }
+
+      return result;
     } catch (error) {
       logError('Optimization failed:', error);
 
@@ -110,10 +121,10 @@ export class LLMService {
   }
 
   /**
-   * Build system prompt based on level and style
+   * Build system prompt based on level, style, and teacher notes option
    * @private
    */
-  buildSystemPrompt(level, style) {
+  buildSystemPrompt(level, style, includeTeacherNotes = false) {
     let basePrompt = SYSTEM_PROMPTS[level] || SYSTEM_PROMPTS.medium;
 
     // Add style modifier
@@ -123,7 +134,70 @@ export class LLMService {
       basePrompt += '\n\nMaintain a casual, conversational tone that sounds natural.';
     }
 
+    // Add teacher notes instructions if needed
+    if (includeTeacherNotes) {
+      basePrompt += `
+
+Your task:
+1. First, optimize the user's text following the guidelines above
+2. Then, provide specific teaching guidance like a teacher giving improvement feedback
+
+Output format (use exactly this structure):
+REFINED_TEXT:
+[Your optimized version here]
+
+TEACHER_NOTE:
+Score: [X/10]
+
+Key improvements (max 3 points):
+• [Specific point with before/after example or vocabulary suggestion]
+• [Specific point with before/after example or vocabulary suggestion]
+• [Specific point with before/after example or vocabulary suggestion]
+
+Teaching guidelines for TEACHER_NOTE:
+- Give specific, actionable feedback with examples (e.g., "Instead of 'very good', use 'excellent' or 'outstanding' for stronger impact")
+- Show which vocabulary or sentence structure would better express the intended meaning
+- Limit to maximum 3 most important improvement points
+- Provide a score out of 10 for the original text
+- DO NOT give generic comments like "removed filler words" or "improved expression"
+- Focus on WHY a specific word or structure is better for the meaning`;
+    }
+
     return basePrompt;
+  }
+
+  /**
+   * Parse optimization result with teacher notes
+   * @private
+   */
+  parseOptimizationResult(response) {
+    const trimmed = response.trim();
+
+    // Look for the markers
+    const refinedMatch = trimmed.indexOf('REFINED_TEXT:');
+    const teacherMatch = trimmed.indexOf('TEACHER_NOTE:');
+
+    if (refinedMatch === -1 || teacherMatch === -1) {
+      // If markers not found, return whole response as refined text
+      log('Could not find markers in response, using fallback parsing');
+      return {
+        refinedText: trimmed,
+        teacherNotes: 'No explanation provided'
+      };
+    }
+
+    // Extract refined text (between REFINED_TEXT: and TEACHER_NOTE:)
+    const refinedStart = refinedMatch + 'REFINED_TEXT:'.length;
+    const refinedText = trimmed.substring(refinedStart, teacherMatch).trim();
+
+    // Extract teacher note (after TEACHER_NOTE:)
+    const teacherStart = teacherMatch + 'TEACHER_NOTE:'.length;
+    const teacherNotes = trimmed.substring(teacherStart).trim();
+
+    return {
+      refinedText,
+      teacherNotes
+    };
   }
 
   /**

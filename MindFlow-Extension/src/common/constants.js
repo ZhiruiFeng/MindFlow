@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = {
   llmModel: 'gpt-4o-mini',
   optimizationLevel: 'medium', // 'light' | 'medium' | 'heavy'
   outputStyle: 'casual', // 'casual' | 'formal'
+  showTeacherNotes: false, // Show teacher notes/feedback
 
   // Behavior
   autoInsert: true,

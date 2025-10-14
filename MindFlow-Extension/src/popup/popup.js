@@ -96,6 +96,8 @@ class PopupController {
       // Result view elements
       originalText: document.getElementById('original-text'),
       optimizedText: document.getElementById('optimized-text'),
+      teacherNotesSection: document.getElementById('teacher-notes-section'),
+      teacherNotes: document.getElementById('teacher-notes'),
       optimizationLevel: document.getElementById('optimization-level'),
       copyBtn: document.getElementById('copy-btn'),
       reoptimizeBtn: document.getElementById('reoptimize-btn'),
@@ -106,7 +108,8 @@ class PopupController {
       errorMessage: document.getElementById('error-message'),
       retryBtn: document.getElementById('retry-btn'),
 
-      // Settings
+      // Header buttons
+      historyBtn: document.getElementById('history-btn'),
       settingsBtn: document.getElementById('settings-btn'),
 
       // Toast
@@ -133,7 +136,8 @@ class PopupController {
     // Error retry
     this.elements.retryBtn.addEventListener('click', () => this.handleNewRecording());
 
-    // Settings
+    // Header buttons
+    this.elements.historyBtn.addEventListener('click', () => this.handleHistory());
     this.elements.settingsBtn.addEventListener('click', () => this.handleSettings());
 
     // Keyboard shortcuts
@@ -331,16 +335,24 @@ class PopupController {
     this.setState(RECORDING_STATES.OPTIMIZING);
 
     try {
-      const optimized = await llmService.optimizeText(text);
+      const result = await llmService.optimizeText(text);
 
       log('Optimization complete');
-
-      // Store optimized text
-      this.currentResult.optimized = optimized;
 
       // Get settings for display
       const settings = await storageManager.getSettings();
       this.currentResult.level = settings.optimizationLevel;
+
+      // Handle result based on whether it includes teacher notes
+      if (typeof result === 'object' && result.refinedText) {
+        // Teacher notes included
+        this.currentResult.optimized = result.refinedText;
+        this.currentResult.teacherNotes = result.teacherNotes;
+      } else {
+        // Simple text result
+        this.currentResult.optimized = result;
+        this.currentResult.teacherNotes = null;
+      }
 
       // Show results
       this.showResults();
@@ -350,6 +362,7 @@ class PopupController {
         await storageManager.saveHistoryEntry({
           original: this.currentResult.original,
           optimized: this.currentResult.optimized,
+          teacherNotes: this.currentResult.teacherNotes,
           level: this.currentResult.level
         });
       }
@@ -360,6 +373,7 @@ class PopupController {
       // Still show result with original text
       this.currentResult.optimized = this.currentResult.original;
       this.currentResult.level = 'none';
+      this.currentResult.teacherNotes = null;
 
       this.showResults();
 
@@ -376,6 +390,14 @@ class PopupController {
     // Populate text boxes
     this.elements.originalText.textContent = this.currentResult.original;
     this.elements.optimizedText.textContent = this.currentResult.optimized;
+
+    // Show/hide teacher notes section
+    if (this.currentResult.teacherNotes) {
+      this.elements.teacherNotes.textContent = this.currentResult.teacherNotes;
+      this.elements.teacherNotesSection.style.display = 'block';
+    } else {
+      this.elements.teacherNotesSection.style.display = 'none';
+    }
 
     // Show optimization level
     const levelText = this.currentResult.level.charAt(0).toUpperCase() +
@@ -486,6 +508,15 @@ class PopupController {
     this.duration = 0;
     this.elements.timer.textContent = '00:00';
     this.setState(RECORDING_STATES.IDLE);
+  }
+
+  /**
+   * Handle history
+   */
+  handleHistory() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('src/history/history.html')
+    });
   }
 
   /**

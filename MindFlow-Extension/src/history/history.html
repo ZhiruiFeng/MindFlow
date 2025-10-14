@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow History</title>
+  <link rel="stylesheet" href="history.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <span class="icon">📜</span>
+          <h1 class="title">History</h1>
+        </div>
+        <div class="header-actions">
+          <button id="clear-all-btn" class="btn-link danger">Clear All</button>
+          <button id="close-btn" class="close-btn" title="Close">×</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="content">
+      <!-- Search and Filter -->
+      <div class="toolbar">
+        <input
+          type="text"
+          id="search-input"
+          class="search-input"
+          placeholder="Search history..."
+        />
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="today">Today</button>
+          <button class="filter-btn" data-filter="week">This Week</button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon">📭</div>
+        <h3>No History Yet</h3>
+        <p>Your interactions will appear here when you enable history in settings.</p>
+        <button id="open-settings-btn" class="btn btn-primary">Open Settings</button>
+      </div>
+
+      <!-- History List -->
+      <div id="history-list" class="history-list">
+        <!-- History items will be dynamically inserted here -->
+      </div>
+
+      <!-- Loading State -->
+      <div id="loading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading history...</p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="footer-text">
+        <span id="history-count">0</span> entries •
+        History is stored locally only
+      </p>
+    </footer>
+  </div>
+
+  <!-- Detail Modal -->
+  <div id="detail-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Interaction Detail</h2>
+        <button id="modal-close-btn" class="close-btn">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-section">
+          <label class="detail-label">Original:</label>
+          <div id="modal-original" class="detail-text"></div>
+        </div>
+        <div class="detail-section">
+          <label class="detail-label">Optimized:</label>
+          <div id="modal-optimized" class="detail-text"></div>
+        </div>
+        <div id="modal-teacher-notes-section" class="detail-section" style="display: none;">
+          <label class="detail-label">Teacher Notes:</label>
+          <div id="modal-teacher-notes" class="detail-text detail-teacher"></div>
+        </div>
+        <div class="detail-info">
+          <span id="modal-level" class="badge"></span>
+          <span id="modal-date" class="detail-date"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="modal-copy-btn" class="btn btn-secondary">Copy Optimized</button>
+        <button id="modal-delete-btn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" style="display: none;">
+    <span id="toast-message"></span>
+  </div>
+
+  <script type="module" src="history.js"></script>
+</body>
+</html>
