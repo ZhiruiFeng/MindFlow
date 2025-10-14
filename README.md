@@ -1,226 +1,297 @@
 # 🎤 MindFlow
 
-> 一款智能的 macOS 语音转文字助手，让文字输入更高效
+> An intelligent macOS voice-to-text assistant that makes text input more efficient
 
-MindFlow 是一个系统级的 macOS 应用程序，能够在任何文本输入场景下快速将语音转换为文字，并通过 AI 智能优化内容，去除填充词和语气词，让你的文字表达更加清晰流畅。
-
----
-
-## ✨ 核心特性
-
-- 🎯 **全局快捷键触发** - 在任何应用中一键唤起，无缝融入工作流
-- 🎤 **高质量语音识别** - 基于 OpenAI Whisper 和 ElevenLabs 的 STT 技术
-- ✨ **智能文本优化** - 自动去除"嗯""啊""那个"等填充词，优化语句结构
-- 🔒 **隐私优先设计** - API 密钥本地加密存储，无需账户登录
-- ⚡ **自动粘贴** - 处理完成后直接粘贴到活动输入框
-- 🎨 **原生 macOS 体验** - 使用 SwiftUI 打造，完美融入系统
+MindFlow is a system-level macOS application that quickly converts speech to text in any text input scenario. It uses AI to intelligently optimize content by removing filler words and verbal tics, making your text expression clearer and smoother.
 
 ---
 
-## 🚀 快速开始
+## ✨ Core Features
 
-### 系统要求
+- 🎯 **Global Hotkey Activation** - Invoke in any app with a single keystroke, seamlessly integrated into your workflow
+- 🎤 **High-Quality Speech Recognition** - Powered by OpenAI Whisper and ElevenLabs STT technology
+- ✨ **Intelligent Text Optimization** - Automatically removes filler words like "um", "uh", "like" and optimizes sentence structure
+- 💾 **Local-First Storage** - All interactions stored locally with Core Data, works offline
+- 🔄 **Smart Sync** - Configurable auto-sync threshold (default 30s) with manual sync option
+- 🌐 **ZephyrOS Integration** - Optional cloud sync to ZephyrOS for cross-platform access
+- 🧩 **Chrome Extension** - Browser companion for web-based voice input
+- 🔒 **Privacy-First Design** - API keys encrypted locally in Keychain, no account required
+- ⚡ **Auto-Paste** - Direct insertion into active input field after processing
+- 🎨 **Native macOS Experience** - Built with SwiftUI, perfectly integrated with the system
 
-- macOS 13.0 (Ventura) 或更高版本
-- 麦克风访问权限
-- 辅助功能权限（用于全局热键和自动粘贴）
+---
 
-### 安装
+## 🚀 Quick Start
 
-**方式 1: 下载安装包**
-1. 从 [Releases](https://github.com/yourusername/MindFlow/releases) 下载最新的 `.dmg` 文件
-2. 打开 DMG 文件，将 MindFlow 拖入应用程序文件夹
-3. 首次打开时，右键点击 -> 打开（以绕过 Gatekeeper）
+### System Requirements
 
-**方式 2: 通过 Homebrew**
+- macOS 13.0 (Ventura) or later
+- Microphone access permission
+- Accessibility permission (for global hotkeys and auto-paste)
+
+### Installation
+
+**Option 1: Download DMG**
+1. Download the latest `.dmg` file from [Releases](https://github.com/yourusername/MindFlow/releases)
+2. Open the DMG file and drag MindFlow to Applications folder
+3. Right-click → Open (to bypass Gatekeeper) on first launch
+
+**Option 2: Homebrew**
 ```bash
 brew install --cask mindflow
 ```
 
-**详细步骤**: 查看 [Quick Start Guide](./docs/guides/quick-start.md)
+**Detailed Steps**: See [Quick Start Guide](./docs/guides/quick-start.md)
 
-### 配置
+### Configuration
 
-1. **启动 MindFlow**
-   点击菜单栏中的 🎤 图标
+1. **Launch MindFlow**
+   Click the 🎤 icon in the menu bar
 
-2. **配置 API 密钥**
-   - 点击菜单栏图标 -> 设置
-   - 输入你的 OpenAI API Key
-   - （可选）输入 ElevenLabs API Key
+2. **Configure API Keys**
+   - Click menu bar icon → Settings
+   - Enter your OpenAI API Key
+   - (Optional) Enter ElevenLabs API Key
 
-3. **设置权限**
-   - 首次使用时,系统会请求麦克风和辅助功能权限
-   - 前往系统设置 -> 隐私与安全性授予相应权限
+3. **Set Permissions**
+   - System will request microphone and accessibility permissions on first use
+   - Go to System Settings → Privacy & Security to grant permissions
 
-4. **自定义快捷键**（可选）
-   - 默认快捷键：`⌘ Shift V`
-   - 可在设置中自定义
+4. **Customize Hotkey** (Optional)
+   - Default hotkey: `⌘ Shift V`
+   - Can be customized in Settings
 
----
-
-## 📖 使用方法
-
-### 基本流程
-
-1. **触发录音**  
-   按下全局快捷键（默认 `⌘ Shift V`），或点击菜单栏图标 -> 开始录音
-
-2. **录制语音**  
-   对着麦克风说话，界面会显示实时音频波形和录制时长
-
-3. **停止并处理**  
-   点击"停止并处理"按钮，应用将：
-   - 将语音转换为文字
-   - 使用 AI 优化文本内容
-   - 显示原始文本和优化后的文本对比
-
-4. **确认并使用**  
-   - **自动粘贴**：点击"粘贴"按钮，文本将自动插入到当前活动的输入框
-   - **手动复制**：点击"复制"按钮，文本将保存到剪贴板
-   - **重新优化**：如果不满意，可以调整优化级别后重新处理
-
-### 优化级别说明
-
-- **轻度**：仅去除明显的填充词，保留口语化表达
-- **中度**（推荐）：去除填充词 + 优化语句结构
-- **重度**：深度改写，转换为书面化表达
+5. **Configure Sync** (Optional)
+   - Enable/disable auto-sync to ZephyrOS
+   - Adjust auto-sync threshold (default: 30 seconds)
+   - Shorter recordings stay local-only unless manually synced
 
 ---
 
-## 🛠 开发
+## 📖 How to Use
 
-### 📚 文档
+### Basic Workflow
 
-**完整文档索引**: [Documentation](./docs/README.md)
+1. **Start Recording**
+   Press the global hotkey (default `⌘ Shift V`), or click menu bar icon → Start Recording
 
-**快速链接**:
-- [Design Plan](./docs/architecture/design-plan.md) - 系统设计和技术栈
-- [Project Structure](./docs/reference/project-structure.md) - 代码组织
-- [Setup Guide](./docs/guides/setup-guide.md) - 开发环境搭建
-- [API Integration](./docs/reference/api-integration.md) - API 集成详解
-- [Coding Standards](./spec/coding-regulations/) - 编码规范
+2. **Speak**
+   Speak into your microphone. The interface shows real-time audio waveform and recording duration
 
-### 技术栈
+3. **Stop and Process**
+   Click "Stop and Process" button. The app will:
+   - Convert speech to text
+   - Use AI to optimize text content
+   - Display comparison between original and optimized text
 
-- **框架**: SwiftUI + Swift
-- **音频**: AVFoundation
-- **系统集成**: Carbon (热键), CGEvent (自动粘贴)
-- **安全存储**: Keychain Services
+4. **Use the Result**
+   - **Auto-paste**: Click "Paste" button to insert text into active input field
+   - **Manual copy**: Click "Copy" button to save text to clipboard
+   - **Re-optimize**: Adjust optimization level and reprocess if needed
+   - **Manual sync**: For short recordings, click "Sync" to upload to ZephyrOS
+
+### Local Storage & Sync
+
+- **All recordings are saved locally first** using Core Data
+- **Auto-sync threshold**: Recordings longer than 30 seconds (configurable) automatically sync to ZephyrOS
+- **Short recordings**: Stay local-only and show a "Sync" button for manual upload
+- **Sync status**: Visual badges show whether each recording is synced, pending, or failed
+- **Offline mode**: Works completely offline; sync when reconnected
+
+### Optimization Levels
+
+- **Light**: Remove obvious filler words only, preserve conversational tone
+- **Medium** (Recommended): Remove fillers + optimize sentence structure
+- **Heavy**: Deep rewrite, convert to formal written expression
+
+---
+
+## 🛠 Development
+
+### 📚 Documentation
+
+**Complete Documentation Index**: [Documentation](./docs/README.md)
+
+**Quick Links**:
+- [Design Plan](./docs/architecture/design-plan.md) - System design and tech stack
+- [Project Structure](./docs/reference/project-structure.md) - Code organization
+- [Setup Guide](./docs/guides/setup-guide.md) - Development environment setup
+- [API Integration](./docs/reference/api-integration.md) - API integration details
+- [Local Storage Deep Dive](./docs/architecture/local-storage-deep-dive.md) - Core Data architecture
+- [Coding Standards](./spec/coding-regulations/) - Coding regulations
+
+### Tech Stack
+
+**macOS Application:**
+- **Framework**: SwiftUI + Swift
+- **Audio**: AVFoundation
+- **System Integration**: Carbon (hotkeys), CGEvent (auto-paste)
+- **Local Storage**: Core Data (SQLite)
+- **Security**: Keychain Services
+- **Backend**: Supabase (Authentication & PostgreSQL)
 - **API**: OpenAI Whisper, OpenAI GPT, ElevenLabs
 
-### 参与开发
+**Chrome Extension:**
+- **Framework**: Vanilla JavaScript (ES6+)
+- **Storage**: Chrome Storage API
+- **Messaging**: Chrome Extension API
+- **UI**: Custom CSS with dark mode
+
+### Contributing
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/yourusername/MindFlow.git
 
-# 用 Xcode 打开项目
+# Open macOS project in Xcode
 cd MindFlow
 open MindFlow.xcodeproj
+
+# For Chrome Extension development
+cd MindFlow-Extension
+# See MindFlow-Extension/README.md for setup instructions
 ```
 
-查看 [Setup Guide](./docs/guides/setup-guide.md) 获取详细步骤。
+See [Setup Guide](./docs/guides/setup-guide.md) for detailed steps.
 
 ---
 
 ## 🗺 Roadmap
 
-### Phase 1: MVP (进行中)
-- [ ] 基础 UI 框架
-- [ ] 音频录制
-- [ ] OpenAI API 集成
-- [ ] 全局热键
-- [ ] 自动粘贴
+### Phase 1: Core Features ✅ COMPLETED
+- [x] SwiftUI UI framework
+- [x] Audio recording with AVFoundation
+- [x] OpenAI & ElevenLabs API integration
+- [x] Global hotkey support
+- [x] Auto-paste functionality
+- [x] Real-time waveform display
+- [x] Multiple optimization modes
 
-### Phase 2: 优化
-- [ ] 历史记录
-- [ ] 多种优化模式
-- [ ] 实时波形显示
-- [ ] 错误处理优化
+### Phase 2: Storage & Sync ✅ COMPLETED
+- [x] Local storage with Core Data
+- [x] Interaction history view
+- [x] ZephyrOS cloud integration
+- [x] Supabase authentication
+- [x] Configurable auto-sync threshold
+- [x] Manual sync for short recordings
+- [x] Sync status visualization
 
-### Phase 3: 发布
-- [ ] 应用签名和公证
-- [ ] 安装包制作
-- [ ] 文档完善
-- [ ] 官网搭建
+### Phase 3: Multi-Platform ✅ COMPLETED
+- [x] Chrome extension
+- [x] Cross-platform sync between macOS and browser
+- [x] Unified API integration
+
+### Phase 4: Polish & Release (In Progress)
+- [x] Error handling improvements
+- [x] Comprehensive documentation
+- [ ] App signing and notarization
+- [ ] DMG installer creation
+- [ ] Website development
+- [ ] App Store submission
 
 ### Future (V2.0+)
-- 本地 AI 模型支持
-- 多语言界面
-- 云端同步
-- iOS 版本
-- 浏览器扩展
+- [ ] Local AI model support (Core ML)
+- [ ] Multi-language UI
+- [ ] iOS companion app
+- [ ] Safari extension
+- [ ] Spotlight integration
+- [ ] Voice commands
 
 ---
 
-## 💰 费用说明
+## 💰 Pricing
 
-**应用本身**：完全免费，开源
+**Application**: Completely free and open-source
 
-**API 使用费用**（需自行承担）：
-- **OpenAI Whisper**: ~$0.006/分钟
-- **OpenAI GPT-4o-mini**: ~$0.0001/次请求
-- **估算**：平均每次使用 < $0.01
+**API Usage Costs** (you pay directly to providers):
+- **OpenAI Whisper**: ~$0.006/minute
+- **OpenAI GPT-4o-mini**: ~$0.0001/request
+- **Estimated cost**: < $0.01 per use on average
 
-💡 **建议**：设置 OpenAI 账户月度预算限制
+**ZephyrOS Backend** (Optional):
+- Free tier available
+- Optional cloud sync for cross-device access
 
----
-
-## 🔒 隐私与安全
-
-- ✅ 所有 API 密钥使用 macOS Keychain 加密存储
-- ✅ 不收集任何用户数据
-- ✅ 不上传任何录音文件（直接发送到你配置的 API）
-- ✅ 无需注册账户
-- ✅ 完全离线工作（除 API 调用外）
+💡 **Tip**: Set monthly budget limits on your OpenAI account
 
 ---
 
-## ❓ 常见问题
+## 🔒 Privacy & Security
 
-**Q: 为什么需要辅助功能权限？**  
-A: 用于实现全局热键监听和自动粘贴功能。你可以选择不授予此权限，但需要手动复制文本。
+- ✅ All API keys encrypted and stored in macOS Keychain
+- ✅ No user data collection
+- ✅ Audio files sent directly to your configured APIs (not uploaded to our servers)
+- ✅ Local-first: all recordings stored on your device
+- ✅ Optional cloud sync (disabled by default)
+- ✅ No account required for local use
+- ✅ Works completely offline (except for API calls and optional sync)
 
-**Q: 我的 API 密钥安全吗？**  
-A: 密钥使用 macOS Keychain 存储，这是 Apple 推荐的最安全的凭证存储方式。
+---
 
-**Q: 支持哪些语言？**  
-A: OpenAI Whisper 支持 99+ 种语言，包括中文、英文、日文等。文本优化对中英文效果最好。
+## ❓ FAQ
 
-**Q: 可以离线使用吗？**  
-A: 目前需要网络连接来调用 API。未来版本计划支持本地 AI 模型。
+**Q: Why does MindFlow need Accessibility permission?**
+A: For global hotkey monitoring and auto-paste functionality. You can decline this permission, but you'll need to manually copy text.
 
-**Q: 和系统自带的听写功能有什么区别？**  
-A: MindFlow 的优势在于 AI 智能优化，能自动清理口语化表达，使文本更加专业易读。
+**Q: Are my API keys secure?**
+A: Keys are stored in macOS Keychain, which is Apple's recommended and most secure credential storage method.
+
+**Q: What languages are supported?**
+A: OpenAI Whisper supports 99+ languages including English, Chinese, Japanese, Spanish, etc. Text optimization works best for English and Chinese.
+
+**Q: Can I use it offline?**
+A: The app stores all recordings locally and works offline. However, transcription and optimization require API calls. Future versions will support local AI models.
+
+**Q: What's the difference from macOS dictation?**
+A: MindFlow's key advantage is AI-powered text optimization that automatically cleans up filler words and improves clarity, making your text more professional.
+
+**Q: What is the auto-sync threshold?**
+A: By default, recordings longer than 30 seconds automatically sync to ZephyrOS (if authenticated). Shorter recordings stay local-only and can be manually synced later. This threshold is configurable in Settings.
 
 ---
 
 ## 📄 License
 
-MIT License - 详见 [LICENSE](./LICENSE)
+MIT License - See [LICENSE](./LICENSE) for details
 
 ---
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-- [OpenAI](https://openai.com/) - Whisper 和 GPT API
-- [ElevenLabs](https://elevenlabs.io/) - 语音技术
-- Apple - 优秀的开发工具和系统 API
+- [OpenAI](https://openai.com/) - Whisper and GPT APIs
+- [ElevenLabs](https://elevenlabs.io/) - Speech-to-text technology
+- [Supabase](https://supabase.com/) - Backend infrastructure and authentication
+- Apple - Excellent development tools and system APIs
 
 ---
 
-## 📧 联系
+## 📧 Contact
 
-- **问题反馈**: [GitHub Issues](https://github.com/yourusername/MindFlow/issues)
-- **功能建议**: [GitHub Discussions](https://github.com/yourusername/MindFlow/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/yourusername/MindFlow/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/yourusername/MindFlow/discussions)
+- **Documentation**: [docs/](./docs/)
+
+---
+
+## 🌟 Project Status
+
+**Current Version**: 1.0 (MVP Complete)
+
+**Key Stats**:
+- ~2,260 lines of Swift code (macOS app)
+- Core Data local storage implementation
+- Chrome extension with full feature parity
+- 30+ documentation files
+- ZephyrOS backend integration
 
 ---
 
 <div align="center">
 
-**如果这个项目对你有帮助，请给个 ⭐️**
+**If this project helps you, please give it a ⭐️**
 
 Made with ❤️ for productivity enthusiasts
+
+[Documentation](./docs/README.md) • [Quick Start](./docs/guides/quick-start.md) • [Contributing](./docs/guides/setup-guide.md)
 
 </div>
