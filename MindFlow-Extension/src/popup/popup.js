@@ -20,6 +20,7 @@ class PopupController {
     this.timerInterval = null;
     this.waveformInterval = null;
     this.currentResult = null;
+    this.hasActiveField = false; // Track if user clicked in a text field
 
     // DOM elements (will be initialized after DOM loads)
     this.elements = {};
@@ -48,6 +49,9 @@ class PopupController {
 
     // Attach event listeners
     this.attachEventListeners();
+
+    // Check if user has an active text field
+    await this.checkActiveField();
 
     // Check for API configuration
     await this.checkConfiguration();
@@ -151,6 +155,53 @@ class PopupController {
         }
       }
     });
+  }
+
+  /**
+   * Check if there's an active editable field in the current tab
+   */
+  async checkActiveField() {
+    try {
+      // Get active tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab) {
+        this.hasActiveField = false;
+        return;
+      }
+
+      // Skip if restricted page
+      if (tab.url && (tab.url.startsWith('chrome://') ||
+                       tab.url.startsWith('chrome-extension://') ||
+                       tab.url.startsWith('edge://') ||
+                       tab.url.startsWith('about:'))) {
+        this.hasActiveField = false;
+        return;
+      }
+
+      // Inject content script if needed
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['src/content/content-script.js']
+        });
+        await new Promise(resolve => setTimeout(resolve, 50));
+      } catch (error) {
+        // Content script might already be injected
+        log('Content script injection skipped:', error.message);
+      }
+
+      // Check for active editable field
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'GET_ACTIVE_ELEMENT_INFO'
+      });
+
+      this.hasActiveField = response && response.isEditable;
+      log('Active editable field detected:', this.hasActiveField);
+    } catch (error) {
+      logError('Failed to check active field:', error);
+      this.hasActiveField = false;
+    }
   }
 
   /**
@@ -331,12 +382,34 @@ class PopupController {
                       this.currentResult.level.slice(1);
     this.elements.optimizationLevel.textContent = levelText;
 
-    // Auto-insert if enabled
+    // Adjust UI based on active field context
+    this.adjustResultUI();
+
+    // Auto-insert if enabled AND there's an active field
     storageManager.getSettings().then(settings => {
-      if (settings.autoInsert) {
+      if (settings.autoInsert && this.hasActiveField) {
         setTimeout(() => this.handleInsert(), 500);
       }
     });
+  }
+
+  /**
+   * Adjust result UI based on whether there's an active field
+   */
+  adjustResultUI() {
+    if (!this.hasActiveField) {
+      // Journey A: No active field - hide/disable Insert button
+      this.elements.insertBtn.style.display = 'none';
+
+      // Make Copy button more prominent
+      this.elements.copyBtn.style.order = '-1'; // Move to first position
+    } else {
+      // Journey B: Active field detected - show Insert button
+      this.elements.insertBtn.style.display = 'flex';
+
+      // Keep normal order
+      this.elements.copyBtn.style.order = '';
+    }
   }
 
   /**
