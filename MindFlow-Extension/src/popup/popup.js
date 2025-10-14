@@ -390,7 +390,18 @@ class PopupController {
       }
     } catch (error) {
       logError('Insert text error:', error);
-      this.showToast('⚠️ Failed to insert. Try copying instead.');
+
+      // Show user-friendly error message
+      const errorMsg = error.message || 'Failed to insert text';
+      if (errorMsg.includes('Cannot insert text on this page')) {
+        this.showToast('⚠️ Cannot insert on this page. Text copied to clipboard instead.', 4000);
+        // Automatically copy to clipboard as fallback
+        await this.handleCopy();
+      } else if (errorMsg.includes('click in a text field')) {
+        this.showToast('⚠️ Please click in a text field first', 3000);
+      } else {
+        this.showToast('⚠️ Failed to insert. Use Copy button instead.', 3000);
+      }
     }
   }
 
@@ -477,15 +488,15 @@ class PopupController {
         this.elements.pauseBtn.style.display = 'none';
         this.elements.stopBtn.style.display = 'none';
         this.elements.processingIndicator.style.display = 'block';
-        this.elements.processingText.textContent = 'Processing...';
+        this.elements.processingText.textContent = 'Processing';
         break;
 
       case RECORDING_STATES.TRANSCRIBING:
-        this.elements.processingText.textContent = 'Transcribing...';
+        this.elements.processingText.textContent = 'Transcribing';
         break;
 
       case RECORDING_STATES.OPTIMIZING:
-        this.elements.processingText.textContent = 'Optimizing...';
+        this.elements.processingText.textContent = 'Refining';
         break;
 
       case RECORDING_STATES.COMPLETED:
@@ -526,17 +537,7 @@ class PopupController {
    */
   startWaveform() {
     this.elements.waveform.classList.add('active');
-
-    // Update waveform bars based on audio level
-    this.waveformInterval = setInterval(async () => {
-      const level = await audioRecorder.getAudioLevel();
-      const bars = this.elements.waveform.querySelectorAll('.wave-bar');
-
-      bars.forEach((bar, index) => {
-        const height = 20 + (level * 40) + (Math.random() * 10);
-        bar.style.height = `${height}px`;
-      });
-    }, 100);
+    // CSS animation handles the visual effect, no need for interval polling
   }
 
   /**
@@ -544,17 +545,7 @@ class PopupController {
    */
   stopWaveform() {
     this.elements.waveform.classList.remove('active');
-
-    if (this.waveformInterval) {
-      clearInterval(this.waveformInterval);
-      this.waveformInterval = null;
-    }
-
-    // Reset bars
-    const bars = this.elements.waveform.querySelectorAll('.wave-bar');
-    bars.forEach(bar => {
-      bar.style.height = '20px';
-    });
+    // CSS animation stops when 'active' class is removed
   }
 }
 

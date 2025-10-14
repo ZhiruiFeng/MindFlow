@@ -253,28 +253,46 @@ async function handleInsertText(request, sender, sendResponse) {
       throw new Error('No active tab found');
     }
 
+    // Check if tab URL is restricted
+    if (tab.url && (tab.url.startsWith('chrome://') ||
+                     tab.url.startsWith('chrome-extension://') ||
+                     tab.url.startsWith('edge://') ||
+                     tab.url.startsWith('about:'))) {
+      throw new Error('Cannot insert text on this page. Please use a regular webpage.');
+    }
+
     // Inject content script if not already injected
     try {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         files: ['src/content/content-script.js']
       });
+      // Add a small delay to ensure script is loaded
+      await new Promise(resolve => setTimeout(resolve, 50));
     } catch (error) {
       // Content script might already be injected, that's okay
       log('Content script injection skipped:', error.message);
     }
 
     // Send message to content script to insert text
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      type: 'INSERT_TEXT',
-      text: text
-    });
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        type: 'INSERT_TEXT',
+        text: text
+      });
 
-    if (response && response.success) {
-      log('Text inserted successfully');
-      sendResponse({ success: true });
-    } else {
-      throw new Error(response?.error || 'Text insertion failed');
+      if (response && response.success) {
+        log('Text inserted successfully');
+        sendResponse({ success: true });
+      } else {
+        throw new Error(response?.error || 'Please click in a text field first');
+      }
+    } catch (error) {
+      // Connection error usually means content script couldn't be injected
+      if (error.message.includes('Receiving end does not exist')) {
+        throw new Error('Cannot insert text on this page. Try using Copy instead.');
+      }
+      throw error;
     }
   } catch (error) {
     logError('Insert text failed:', error);
