@@ -492,11 +492,25 @@ class PopupController {
         break;
 
       case RECORDING_STATES.TRANSCRIBING:
-        this.elements.processingText.textContent = 'Transcribing';
+        this.elements.recordingView.classList.add('active');
+        this.elements.recordingView.style.display = 'block';
+        this.elements.statusIndicator.classList.remove('recording');
+        this.elements.startBtn.style.display = 'none';
+        this.elements.pauseBtn.style.display = 'none';
+        this.elements.stopBtn.style.display = 'none';
+        this.elements.processingIndicator.style.display = 'block';
+        this.elements.processingText.textContent = 'Transcribing audio';
         break;
 
       case RECORDING_STATES.OPTIMIZING:
-        this.elements.processingText.textContent = 'Refining';
+        this.elements.recordingView.classList.add('active');
+        this.elements.recordingView.style.display = 'block';
+        this.elements.statusIndicator.classList.remove('recording');
+        this.elements.startBtn.style.display = 'none';
+        this.elements.pauseBtn.style.display = 'none';
+        this.elements.stopBtn.style.display = 'none';
+        this.elements.processingIndicator.style.display = 'block';
+        this.elements.processingText.textContent = 'Refining text';
         break;
 
       case RECORDING_STATES.COMPLETED:

@@ -162,12 +162,16 @@ export class STTService {
    */
   async transcribeWithElevenLabs(audioBlob, options = {}) {
     const formData = new FormData();
-    formData.append('audio', audioBlob);
 
-    // Optional model parameter
-    if (options.model) {
-      formData.append('model', options.model);
-    }
+    // Add model_id (required by ElevenLabs API)
+    const modelId = options.model || 'scribe_v1';
+    formData.append('model_id', modelId);
+
+    // Add audio file
+    const audioFile = new File([audioBlob], 'recording.webm', {
+      type: audioBlob.type
+    });
+    formData.append('file', audioFile);
 
     const response = await fetch(API_ENDPOINTS.ELEVENLABS_STT, {
       method: 'POST',
