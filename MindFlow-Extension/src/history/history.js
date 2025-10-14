@@ -5,6 +5,8 @@
 
 import { log, logError, copyToClipboard } from '../common/utils.js';
 import storageManager from '../lib/storage-manager.js';
+import supabaseAuth from '../lib/supabase-auth.js';
+import zmemoryAPI from '../lib/zmemory-api.js';
 
 class HistoryController {
   constructor() {
@@ -33,6 +35,11 @@ class HistoryController {
   async setup() {
     this.cacheElements();
     this.attachEventListeners();
+
+    // Initialize auth service
+    await supabaseAuth.initialize();
+    await zmemoryAPI.initialize();
+
     await this.loadHistory();
 
     log('History page ready');
@@ -227,6 +234,26 @@ class HistoryController {
 
     const levelBadge = this.getLevelBadge(entry.level);
 
+    // Determine sync status
+    const isAuthenticated = zmemoryAPI.isAuthenticated();
+
+    log('📊 History item sync status:', {
+      entryId: entry.id,
+      syncedToBackend: entry.syncedToBackend,
+      isAuthenticated: isAuthenticated,
+      audioDuration: entry.audioDuration
+    });
+
+    const syncStatus = entry.syncedToBackend
+      ? '<span class="sync-badge synced" title="Synced to ZephyrOS">✓ Synced</span>'
+      : (isAuthenticated
+          ? '<button class="sync-btn" data-id="' + entry.id + '" title="Sync to ZephyrOS">↑ Sync</button>'
+          : '<span class="sync-badge not-synced" title="Sign in to sync">Local only</span>');
+
+    const durationBadge = entry.audioDuration
+      ? `<span class="duration-badge">${Math.round(entry.audioDuration)}s</span>`
+      : '';
+
     item.innerHTML = `
       <div class="history-item-header">
         <span class="history-item-date">${dateStr}</span>
@@ -238,6 +265,8 @@ class HistoryController {
       <div class="history-item-text">${this.escapeHtml(entry.optimized || entry.original)}</div>
       <div class="history-item-footer">
         ${levelBadge}
+        ${durationBadge}
+        ${syncStatus}
       </div>
     `;
 
@@ -262,7 +291,71 @@ class HistoryController {
       this.handleDelete(entry.id);
     });
 
+    // Sync button (if present)
+    const syncBtn = item.querySelector('.sync-btn');
+    if (syncBtn) {
+      syncBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleSync(entry);
+      });
+    }
+
     return item;
+  }
+
+  /**
+   * Handle manual sync to backend
+   */
+  async handleSync(entry) {
+    if (!zmemoryAPI.isAuthenticated()) {
+      this.showToast('Please sign in first to sync to ZephyrOS');
+      return;
+    }
+
+    try {
+      log('Manually syncing entry:', entry.id);
+      this.showToast('Syncing to ZephyrOS...', 10000);
+
+      // Get current settings for mapping
+      const settings = await storageManager.getSettings();
+
+      // Map provider names
+      const transcriptionApi = 'OpenAI'; // Default since we don't store this in history
+
+      // Map output style
+      const outputStyle = settings.outputStyle === 'casual' ? 'conversational' : 'formal';
+
+      const interaction = {
+        transcriptionApi: transcriptionApi,
+        transcriptionModel: 'whisper-1',
+        optimizationModel: settings.llmModel || 'gpt-4o-mini',
+        optimizationLevel: entry.level || settings.optimizationLevel,
+        outputStyle: outputStyle,
+        originalText: entry.original,
+        optimizedText: entry.optimized,
+        teacherNotes: entry.teacherNotes || null,
+        audioDurationSeconds: entry.audioDuration || null
+      };
+
+      const result = await zmemoryAPI.createInteraction(interaction);
+
+      // Update entry in history
+      entry.syncedToBackend = true;
+      entry.backendId = result.id;
+      await storageManager.updateHistoryEntry(entry.id, {
+        syncedToBackend: true,
+        backendId: result.id
+      });
+
+      // Reload history to update UI
+      await this.loadHistory();
+
+      this.showToast('✓ Synced to ZephyrOS');
+      log('Entry synced successfully:', result.id);
+    } catch (error) {
+      logError('Manual sync error:', error);
+      this.showToast('⚠️ Failed to sync: ' + error.message);
+    }
   }
 
   /**

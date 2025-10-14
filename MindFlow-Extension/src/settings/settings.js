@@ -90,6 +90,10 @@ class SettingsController {
       keepHistory: document.getElementById('keep-history'),
       showTeacherNotes: document.getElementById('show-teacher-notes'),
 
+      // Sync Configuration
+      autoSyncBackend: document.getElementById('auto-sync-backend'),
+      autoSyncThreshold: document.getElementById('auto-sync-threshold'),
+
       // Actions
       saveBtn: document.getElementById('save-btn'),
       resetBtn: document.getElementById('reset-btn'),
@@ -218,6 +222,10 @@ class SettingsController {
       this.elements.keepHistory.checked = settings.keepHistory;
       this.elements.showTeacherNotes.checked = settings.showTeacherNotes;
 
+      // Sync Configuration
+      this.elements.autoSyncBackend.checked = settings.autoSyncToBackend;
+      this.elements.autoSyncThreshold.value = settings.autoSyncThreshold;
+
       log('Settings loaded');
     } catch (error) {
       logError('Load settings error:', error);
@@ -264,7 +272,9 @@ class SettingsController {
         showTeacherNotes: this.elements.showTeacherNotes.checked,
         autoInsert: this.elements.autoInsert.checked,
         showNotifications: this.elements.showNotifications.checked,
-        keepHistory: this.elements.keepHistory.checked
+        keepHistory: this.elements.keepHistory.checked,
+        autoSyncToBackend: this.elements.autoSyncBackend.checked,
+        autoSyncThreshold: parseInt(this.elements.autoSyncThreshold.value, 10)
       };
 
       await storageManager.saveSettings(settings);

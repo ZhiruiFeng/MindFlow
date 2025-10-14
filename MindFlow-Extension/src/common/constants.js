@@ -41,6 +41,10 @@ export const DEFAULT_SETTINGS = {
   showNotifications: true,
   keepHistory: false,
 
+  // Sync Configuration
+  autoSyncToBackend: true, // Automatically sync to ZephyrOS backend
+  autoSyncThreshold: 30, // Minimum duration (seconds) to auto-sync
+
   // UI
   theme: 'auto' // 'light' | 'dark' | 'auto'
 };

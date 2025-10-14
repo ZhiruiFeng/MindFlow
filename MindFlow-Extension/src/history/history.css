@@ -532,6 +532,65 @@ body {
   color: var(--text-secondary);
 }
 
+/* Sync Status Badges */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.sync-badge.synced {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.sync-badge.not-synced {
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+/* Sync Button */
+.sync-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.sync-btn:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.sync-btn:active {
+  transform: translateY(0);
+}
+
+/* Duration Badge */
+.duration-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--border-radius-sm);
+  font-size: 10px;
+  font-weight: 500;
+  margin-left: var(--spacing-sm);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

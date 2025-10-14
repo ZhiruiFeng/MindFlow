@@ -370,18 +370,21 @@ class PopupController {
       // Show results
       this.showResults();
 
+      // Sync to ZephyrOS backend if authenticated (before saving to history)
+      const synced = await this.syncToBackend();
+
       // Save to history if enabled
       if (settings.keepHistory) {
         await storageManager.saveHistoryEntry({
           original: this.currentResult.original,
           optimized: this.currentResult.optimized,
           teacherNotes: this.currentResult.teacherNotes,
-          level: this.currentResult.level
+          level: this.currentResult.level,
+          audioDuration: this.currentResult.audioDuration,
+          syncedToBackend: this.currentResult.syncedToBackend || false,
+          backendId: this.currentResult.backendId || null
         });
       }
-
-      // Sync to ZephyrOS backend if authenticated
-      await this.syncToBackend();
 
     } catch (error) {
       logError('Optimization error:', error);
@@ -684,25 +687,38 @@ class PopupController {
 
   /**
    * Sync interaction to ZephyrOS backend
+   * @param {boolean} force - Force sync even if below threshold
+   * @returns {Promise<boolean>} - True if synced successfully
    */
-  async syncToBackend() {
-    log('🔄 syncToBackend called');
+  async syncToBackend(force = false) {
+    log('🔄 syncToBackend called, force:', force);
 
     // Only sync if user is authenticated
     if (!zmemoryAPI.isAuthenticated()) {
       log('⚠️ Not authenticated, skipping backend sync');
-      return;
+      return false;
     }
 
     if (!this.currentResult) {
       log('⚠️ No current result, skipping backend sync');
-      return;
+      return false;
     }
 
     try {
-      log('📤 Syncing interaction to ZephyrOS backend...');
-
       const settings = await storageManager.getSettings();
+
+      // Check if auto-sync is enabled and recording meets threshold
+      if (!force && settings.autoSyncToBackend) {
+        const duration = this.currentResult.audioDuration || 0;
+        const threshold = settings.autoSyncThreshold || 30;
+
+        if (duration < threshold) {
+          log(`⏭️ Skipping auto-sync: ${duration}s < ${threshold}s threshold`);
+          return false;
+        }
+      }
+
+      log('📤 Syncing interaction to ZephyrOS backend...');
 
       // Map provider names to backend format (OpenAI or ElevenLabs - capitalized)
       const transcriptionApi = this.currentResult.provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI';
@@ -728,12 +744,19 @@ class PopupController {
 
       log('✅ Interaction synced successfully:', result.id);
       this.showToast('✓ Synced to ZephyrOS', 2000);
+
+      // Mark as synced in current result
+      this.currentResult.syncedToBackend = true;
+      this.currentResult.backendId = result.id;
+
+      return true;
     } catch (error) {
       logError('❌ Backend sync error:', error);
       logError('Error message:', error.message);
       logError('Error stack:', error.stack);
       // Don't show error to user, sync is optional
       log('Failed to sync to backend, continuing...');
+      return false;
     }
   }
 }

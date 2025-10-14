@@ -260,6 +260,38 @@ export class StorageManager {
   }
 
   /**
+   * Update history entry
+   * @param {string} id - Entry ID
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<void>}
+   */
+  async updateHistoryEntry(id, updates) {
+    try {
+      const history = await this.getHistory();
+      const index = history.findIndex(entry => entry.id === id);
+
+      if (index === -1) {
+        throw new Error(`History entry not found: ${id}`);
+      }
+
+      // Merge updates
+      history[index] = {
+        ...history[index],
+        ...updates
+      };
+
+      await this.storage.local.set({
+        [STORAGE_KEYS.HISTORY]: history
+      });
+
+      log('History entry updated:', id);
+    } catch (error) {
+      logError('Failed to update history entry:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Delete history entry
    * @param {string} id - Entry ID
    * @returns {Promise<void>}
