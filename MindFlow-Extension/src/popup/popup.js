@@ -113,6 +113,7 @@ class PopupController {
       retryBtn: document.getElementById('retry-btn'),
 
       // Header buttons
+      vocabularyBtn: document.getElementById('vocabulary-btn'),
       historyBtn: document.getElementById('history-btn'),
       settingsBtn: document.getElementById('settings-btn'),
 
@@ -141,6 +142,7 @@ class PopupController {
     this.elements.retryBtn.addEventListener('click', () => this.handleNewRecording());
 
     // Header buttons
+    this.elements.vocabularyBtn.addEventListener('click', () => this.handleVocabulary());
     this.elements.historyBtn.addEventListener('click', () => this.handleHistory());
     this.elements.settingsBtn.addEventListener('click', () => this.handleSettings());
 
@@ -539,6 +541,15 @@ class PopupController {
     this.duration = 0;
     this.elements.timer.textContent = '00:00';
     this.setState(RECORDING_STATES.IDLE);
+  }
+
+  /**
+   * Handle vocabulary
+   */
+  handleVocabulary() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('src/vocabulary/vocabulary.html')
+    });
   }
 
   /**

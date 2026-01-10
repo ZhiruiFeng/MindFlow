@@ -538,6 +538,165 @@ export class StorageManager {
       logError('Failed to clear Supabase credentials:', error);
     }
   }
+
+  // ============================================
+  // Vocabulary Storage Methods
+  // ============================================
+
+  /**
+   * Get all vocabulary words
+   * @returns {Promise<Array>} Array of vocabulary entries
+   */
+  async getVocabulary() {
+    try {
+      const result = await this.storage.local.get(STORAGE_KEYS.VOCABULARY);
+      return result[STORAGE_KEYS.VOCABULARY] || [];
+    } catch (error) {
+      logError('Failed to get vocabulary:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Save vocabulary
+   * @param {Array} vocabulary - Array of vocabulary entries
+   * @returns {Promise<void>}
+   */
+  async saveVocabulary(vocabulary) {
+    try {
+      await this.storage.local.set({
+        [STORAGE_KEYS.VOCABULARY]: vocabulary
+      });
+      log('Vocabulary saved');
+    } catch (error) {
+      logError('Failed to save vocabulary:', error);
+      throw new StorageError('Failed to save vocabulary');
+    }
+  }
+
+  /**
+   * Add a vocabulary word
+   * @param {Object} entry - Vocabulary entry
+   * @returns {Promise<void>}
+   */
+  async addVocabularyWord(entry) {
+    try {
+      const vocabulary = await this.getVocabulary();
+      vocabulary.unshift({
+        ...entry,
+        id: entry.id || `vocab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: entry.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      await this.saveVocabulary(vocabulary);
+      log('Vocabulary word added:', entry.word);
+    } catch (error) {
+      logError('Failed to add vocabulary word:', error);
+      throw new StorageError('Failed to add vocabulary word');
+    }
+  }
+
+  /**
+   * Update a vocabulary word
+   * @param {string} id - Word ID
+   * @param {Object} updates - Fields to update
+   * @returns {Promise<void>}
+   */
+  async updateVocabularyWord(id, updates) {
+    try {
+      const vocabulary = await this.getVocabulary();
+      const index = vocabulary.findIndex(w => w.id === id);
+      if (index === -1) {
+        throw new Error('Word not found');
+      }
+      vocabulary[index] = {
+        ...vocabulary[index],
+        ...updates,
+        updatedAt: new Date().toISOString()
+      };
+      await this.saveVocabulary(vocabulary);
+      log('Vocabulary word updated:', id);
+    } catch (error) {
+      logError('Failed to update vocabulary word:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a vocabulary word
+   * @param {string} id - Word ID
+   * @returns {Promise<void>}
+   */
+  async deleteVocabularyWord(id) {
+    try {
+      const vocabulary = await this.getVocabulary();
+      const filtered = vocabulary.filter(w => w.id !== id);
+      await this.saveVocabulary(filtered);
+      log('Vocabulary word deleted:', id);
+    } catch (error) {
+      logError('Failed to delete vocabulary word:', error);
+    }
+  }
+
+  /**
+   * Get words due for review
+   * @returns {Promise<Array>} Words due for review
+   */
+  async getWordsDueForReview() {
+    try {
+      const vocabulary = await this.getVocabulary();
+      const now = new Date();
+      return vocabulary.filter(word => {
+        if (!word.nextReviewAt) return true;
+        return new Date(word.nextReviewAt) <= now;
+      });
+    } catch (error) {
+      logError('Failed to get words due for review:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get vocabulary statistics
+   * @returns {Promise<Object>} Statistics object
+   */
+  async getVocabularyStats() {
+    try {
+      const vocabulary = await this.getVocabulary();
+      const now = new Date();
+
+      const stats = {
+        total: vocabulary.length,
+        dueForReview: 0,
+        mastered: 0,
+        learning: 0,
+        new: 0,
+        reviewing: 0,
+        familiar: 0
+      };
+
+      vocabulary.forEach(word => {
+        // Count due words
+        if (!word.nextReviewAt || new Date(word.nextReviewAt) <= now) {
+          stats.dueForReview++;
+        }
+
+        // Count by mastery level
+        switch (word.masteryLevel) {
+          case 0: stats.new++; break;
+          case 1: stats.learning++; break;
+          case 2: stats.reviewing++; break;
+          case 3: stats.familiar++; break;
+          case 4: stats.mastered++; break;
+        }
+      });
+
+      return stats;
+    } catch (error) {
+      logError('Failed to get vocabulary stats:', error);
+      return { total: 0, dueForReview: 0, mastered: 0 };
+    }
+  }
 }
 
 // Export singleton instance

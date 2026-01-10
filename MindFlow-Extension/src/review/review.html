@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindFlow - Vocabulary Review</title>
+    <link rel="stylesheet" href="review.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-left">
+                    <a href="../vocabulary/vocabulary.html" class="back-btn">
+                        <span class="icon">&larr;</span>
+                    </a>
+                    <h1 class="title">Vocabulary Review</h1>
+                </div>
+                <div class="header-right">
+                    <span id="progress-text" class="progress-text">0 / 0</span>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Start Screen -->
+            <div id="start-screen" class="screen">
+                <div class="start-content">
+                    <div class="start-icon">📚</div>
+                    <h2>Ready to Review?</h2>
+                    <p id="due-count-text">You have <span id="due-count">0</span> words due for review</p>
+                    <div class="start-options">
+                        <label>
+                            <span>Review limit:</span>
+                            <select id="review-limit">
+                                <option value="10">10 words</option>
+                                <option value="20" selected>20 words</option>
+                                <option value="30">30 words</option>
+                                <option value="50">50 words</option>
+                                <option value="0">All due words</option>
+                            </select>
+                        </label>
+                    </div>
+                    <button id="start-btn" class="btn btn-primary btn-large">
+                        Start Review
+                    </button>
+                </div>
+            </div>
+
+            <!-- Review Screen -->
+            <div id="review-screen" class="screen" style="display: none;">
+                <div class="flashcard-container">
+                    <div id="flashcard" class="flashcard">
+                        <!-- Front side -->
+                        <div class="flashcard-front">
+                            <div class="word-content">
+                                <h2 id="word-text" class="word-text">Word</h2>
+                                <div class="phonetic-row">
+                                    <p id="word-phonetic" class="word-phonetic">/phonetic/</p>
+                                    <button id="pronounce-btn-front" class="pronunciation-btn" title="Play pronunciation">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="tap-hint">Click or press Space to reveal answer</p>
+                        </div>
+
+                        <!-- Back side -->
+                        <div class="flashcard-back">
+                            <div class="word-content">
+                                <h2 id="word-text-back" class="word-text">Word</h2>
+                                <div class="phonetic-row">
+                                    <p id="word-phonetic-back" class="word-phonetic">/phonetic/</p>
+                                    <button id="pronounce-btn-back" class="pronunciation-btn" title="Play pronunciation">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="definition-content">
+                                <p id="word-pos" class="word-pos">part of speech</p>
+                                <p id="word-definition" class="word-definition">Definition</p>
+                                <p id="word-definition-cn" class="word-definition-cn">Chinese definition</p>
+                                <div id="word-example" class="word-example"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rating Buttons -->
+                <div id="rating-buttons" class="rating-buttons" style="display: none;">
+                    <p class="rating-prompt">How well did you remember?</p>
+                    <div class="rating-grid">
+                        <button class="rating-btn rating-again" data-quality="0">
+                            <span class="rating-label">Again</span>
+                            <span class="rating-desc">Completely forgot</span>
+                        </button>
+                        <button class="rating-btn rating-hard" data-quality="2">
+                            <span class="rating-label">Hard</span>
+                            <span class="rating-desc">Struggled to recall</span>
+                        </button>
+                        <button class="rating-btn rating-good" data-quality="3">
+                            <span class="rating-label">Good</span>
+                            <span class="rating-desc">Recalled with effort</span>
+                        </button>
+                        <button class="rating-btn rating-easy" data-quality="5">
+                            <span class="rating-label">Easy</span>
+                            <span class="rating-desc">Instantly knew it</span>
+                        </button>
+                    </div>
+                    <p class="keyboard-hint">
+                        Keyboard: <kbd>1</kbd> Again | <kbd>2</kbd> Hard | <kbd>3</kbd> Good | <kbd>4</kbd> Easy
+                    </p>
+                </div>
+            </div>
+
+            <!-- Complete Screen -->
+            <div id="complete-screen" class="screen" style="display: none;">
+                <div class="complete-content">
+                    <div class="complete-icon">🎉</div>
+                    <h2>Review Complete!</h2>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value" id="stat-reviewed">0</span>
+                            <span class="stat-label">Words Reviewed</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="stat-correct">0</span>
+                            <span class="stat-label">Correct</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value" id="stat-accuracy">0%</span>
+                            <span class="stat-label">Accuracy</span>
+                        </div>
+                    </div>
+                    <div class="complete-actions">
+                        <button id="review-more-btn" class="btn btn-secondary">
+                            Review More
+                        </button>
+                        <a href="../vocabulary/vocabulary.html" class="btn btn-primary">
+                            Back to Vocabulary
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-screen" class="screen" style="display: none;">
+                <div class="empty-content">
+                    <div class="empty-icon">✨</div>
+                    <h2>All Caught Up!</h2>
+                    <p>You have no words due for review right now.</p>
+                    <a href="../vocabulary/vocabulary.html" class="btn btn-primary">
+                        Back to Vocabulary
+                    </a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="review.js"></script>
+</body>
+</html>

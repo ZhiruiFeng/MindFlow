@@ -7,6 +7,7 @@
 
 import Cocoa
 import SwiftUI
+import UserNotifications
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     // Managers
@@ -14,6 +15,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let recordingKeyboardManager = RecordingKeyboardManager.shared
     let permissionManager = PermissionManager.shared
     let settings = Settings.shared
+
+    // Vocabulary notification timer
+    private var reviewReminderTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Show Dock icon, run as normal application
@@ -27,6 +31,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Check permissions
         checkPermissions()
+
+        // Setup vocabulary review reminders
+        setupReviewReminders()
 
         print("✅ MindFlow 启动成功")
     }
@@ -213,5 +220,74 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             permissionManager.openSystemPreferences(for: permissionType)
         }
     }
-    
+
+    // MARK: - Vocabulary Review Reminders
+
+    private func setupReviewReminders() {
+        // Request notification permission
+        requestNotificationPermission()
+
+        // Check for words due for review periodically (every hour)
+        reviewReminderTimer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+            self?.checkAndNotifyReviewDue()
+        }
+
+        // Check immediately on launch (with delay to ensure Core Data is ready)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            self?.checkAndNotifyReviewDue()
+        }
+    }
+
+    private func requestNotificationPermission() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("✅ Notification permission granted")
+            } else if let error = error {
+                print("❌ Notification permission error: \(error)")
+            }
+        }
+    }
+
+    private func checkAndNotifyReviewDue() {
+        guard settings.vocabularyReviewRemindersEnabled else { return }
+
+        let dueWords = VocabularyStorage.shared.fetchWordsDueForReview()
+        let dueCount = dueWords.count
+
+        guard dueCount > 0 else { return }
+
+        // Create notification
+        let content = UNMutableNotificationContent()
+        content.title = "Vocabulary Review"
+        content.body = dueCount == 1
+            ? "You have 1 word due for review"
+            : "You have \(dueCount) words due for review"
+        content.sound = .default
+        content.categoryIdentifier = "VOCABULARY_REVIEW"
+
+        // Create trigger (immediate)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+
+        // Create request
+        let request = UNNotificationRequest(
+            identifier: "vocabulary-review-\(Date().timeIntervalSince1970)",
+            content: content,
+            trigger: trigger
+        )
+
+        // Schedule notification
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Failed to schedule notification: \(error)")
+            } else {
+                print("📢 Review reminder notification scheduled (\(dueCount) words due)")
+            }
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Clean up timer
+        reviewReminderTimer?.invalidate()
+        reviewReminderTimer = nil
+    }
 }

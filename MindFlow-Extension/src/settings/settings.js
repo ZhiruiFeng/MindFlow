@@ -9,6 +9,7 @@ import sttService from '../lib/stt-service.js';
 import llmService from '../lib/llm-service.js';
 import supabaseAuth from '../lib/supabase-auth.js';
 import zmemoryAPI from '../lib/zmemory-api.js';
+import vocabularySyncService from '../lib/vocabulary-sync.js';
 
 class SettingsController {
   constructor() {
@@ -94,6 +95,14 @@ class SettingsController {
       autoSyncBackend: document.getElementById('auto-sync-backend'),
       autoSyncThreshold: document.getElementById('auto-sync-threshold'),
 
+      // Vocabulary Sync
+      vocabularySyncEnabled: document.getElementById('vocabulary-sync-enabled'),
+      vocabularyAutoSync: document.getElementById('vocabulary-auto-sync'),
+      vocabularySyncState: document.getElementById('vocabulary-sync-state'),
+      vocabularyLastSync: document.getElementById('vocabulary-last-sync'),
+      vocabularyPendingCount: document.getElementById('vocabulary-pending-count'),
+      vocabularySyncNowBtn: document.getElementById('vocabulary-sync-now-btn'),
+
       // Actions
       saveBtn: document.getElementById('save-btn'),
       resetBtn: document.getElementById('reset-btn'),
@@ -174,6 +183,17 @@ class SettingsController {
     this.elements.showNotifications.addEventListener('change', autoSave);
     this.elements.keepHistory.addEventListener('change', autoSave);
     this.elements.showTeacherNotes.addEventListener('change', autoSave);
+
+    // Vocabulary sync
+    if (this.elements.vocabularySyncEnabled) {
+      this.elements.vocabularySyncEnabled.addEventListener('change', autoSave);
+    }
+    if (this.elements.vocabularyAutoSync) {
+      this.elements.vocabularyAutoSync.addEventListener('change', autoSave);
+    }
+    if (this.elements.vocabularySyncNowBtn) {
+      this.elements.vocabularySyncNowBtn.addEventListener('click', () => this.handleVocabularySync());
+    }
   }
 
   /**
@@ -226,6 +246,17 @@ class SettingsController {
       this.elements.autoSyncBackend.checked = settings.autoSyncToBackend;
       this.elements.autoSyncThreshold.value = settings.autoSyncThreshold;
 
+      // Vocabulary Sync
+      if (this.elements.vocabularySyncEnabled) {
+        this.elements.vocabularySyncEnabled.checked = settings.vocabularySyncEnabled !== false;
+      }
+      if (this.elements.vocabularyAutoSync) {
+        this.elements.vocabularyAutoSync.checked = settings.vocabularyAutoSync !== false;
+      }
+
+      // Update vocabulary sync status
+      await this.updateVocabularySyncStatus();
+
       log('Settings loaded');
     } catch (error) {
       logError('Load settings error:', error);
@@ -274,7 +305,9 @@ class SettingsController {
         showNotifications: this.elements.showNotifications.checked,
         keepHistory: this.elements.keepHistory.checked,
         autoSyncToBackend: this.elements.autoSyncBackend.checked,
-        autoSyncThreshold: parseInt(this.elements.autoSyncThreshold.value, 10)
+        autoSyncThreshold: parseInt(this.elements.autoSyncThreshold.value, 10),
+        vocabularySyncEnabled: this.elements.vocabularySyncEnabled?.checked ?? true,
+        vocabularyAutoSync: this.elements.vocabularyAutoSync?.checked ?? true
       };
 
       await storageManager.saveSettings(settings);
@@ -560,6 +593,86 @@ class SettingsController {
     } catch (error) {
       logError('Save config error:', error);
       this.showToast('⚠️ Failed to save configuration');
+    }
+  }
+
+  /**
+   * Handle vocabulary sync
+   */
+  async handleVocabularySync() {
+    if (!this.elements.vocabularySyncNowBtn) return;
+
+    try {
+      this.elements.vocabularySyncNowBtn.disabled = true;
+      this.elements.vocabularySyncNowBtn.textContent = 'Syncing...';
+
+      if (this.elements.vocabularySyncState) {
+        this.elements.vocabularySyncState.textContent = 'Syncing...';
+      }
+
+      // Load config and sync
+      const configLoaded = await vocabularySyncService.loadConfig();
+
+      if (!configLoaded) {
+        this.showToast('⚠️ Sync not configured. Please sign in first.');
+        return;
+      }
+
+      const result = await vocabularySyncService.fullSync();
+
+      this.showToast(`✓ Synced: ${result.pushed} pushed, ${result.pulled} pulled`);
+
+      // Update status
+      await this.updateVocabularySyncStatus();
+
+    } catch (error) {
+      logError('Vocabulary sync error:', error);
+      this.showToast('⚠️ Sync failed: ' + error.message);
+
+      if (this.elements.vocabularySyncState) {
+        this.elements.vocabularySyncState.textContent = 'Error';
+      }
+    } finally {
+      this.elements.vocabularySyncNowBtn.disabled = false;
+      this.elements.vocabularySyncNowBtn.textContent = 'Sync Now';
+    }
+  }
+
+  /**
+   * Update vocabulary sync status display
+   */
+  async updateVocabularySyncStatus() {
+    try {
+      // Get all words and count pending
+      const allWords = await storageManager.getVocabulary();
+      const pendingCount = allWords.filter(w => w.syncStatus === 'pending').length;
+
+      if (this.elements.vocabularyPendingCount) {
+        this.elements.vocabularyPendingCount.textContent = `${pendingCount} words`;
+      }
+
+      // Update last sync date
+      if (this.elements.vocabularyLastSync) {
+        if (vocabularySyncService.lastSyncDate) {
+          this.elements.vocabularyLastSync.textContent = vocabularySyncService.lastSyncDate.toLocaleString();
+        } else {
+          this.elements.vocabularyLastSync.textContent = 'Never';
+        }
+      }
+
+      // Update sync state
+      if (this.elements.vocabularySyncState) {
+        if (vocabularySyncService.isSyncing) {
+          this.elements.vocabularySyncState.textContent = 'Syncing...';
+        } else if (vocabularySyncService.isEnabled) {
+          this.elements.vocabularySyncState.textContent = pendingCount > 0 ? 'Pending' : 'Synced';
+        } else {
+          this.elements.vocabularySyncState.textContent = 'Not configured';
+        }
+      }
+
+    } catch (error) {
+      logError('Update vocabulary sync status error:', error);
     }
   }
 }

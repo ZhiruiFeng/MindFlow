@@ -22,7 +22,11 @@ export const STORAGE_KEYS = {
   RECORDING_STATE: 'recordingState',
 
   // History (optional feature)
-  HISTORY: 'history'
+  HISTORY: 'history',
+
+  // Vocabulary
+  VOCABULARY: 'vocabulary',
+  VOCABULARY_STATS: 'vocabularyStats'
 };
 
 // Default settings
@@ -79,7 +83,23 @@ export const LLM_MODELS = {
 export const API_ENDPOINTS = {
   OPENAI_TRANSCRIPTION: 'https://api.openai.com/v1/audio/transcriptions',
   OPENAI_CHAT: 'https://api.openai.com/v1/chat/completions',
-  ELEVENLABS_STT: 'https://api.elevenlabs.io/v1/speech-to-text'
+  ELEVENLABS_STT: 'https://api.elevenlabs.io/v1/speech-to-text',
+  ELEVENLABS_TTS: 'https://api.elevenlabs.io/v1/text-to-speech'
+};
+
+// TTS Configuration
+export const TTS_CONFIG = {
+  // Rachel voice - clear American female, good for pronunciation
+  DEFAULT_VOICE_ID: '21m00Tcm4TlvDq8ikWAM',
+  // Multilingual model for better pronunciation
+  MODEL_ID: 'eleven_multilingual_v2',
+  // Voice settings
+  VOICE_SETTINGS: {
+    stability: 0.5,
+    similarity_boost: 0.75,
+    style: 0.0,
+    use_speaker_boost: true
+  }
 };
 
 // Recording states
@@ -162,7 +182,12 @@ export const MESSAGE_TYPES = {
   INSERT_TEXT: 'insertText',
   GET_SETTINGS: 'getSettings',
   SAVE_SETTINGS: 'saveSettings',
-  VALIDATE_API_KEY: 'validateApiKey'
+  VALIDATE_API_KEY: 'validateApiKey',
+
+  // Vocabulary
+  VOCABULARY_LOOKUP: 'vocabularyLookup',
+  VOCABULARY_ADD: 'vocabularyAdd',
+  VOCABULARY_GET_DUE: 'vocabularyGetDue'
 };
 
 // Chrome storage limits
