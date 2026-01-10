@@ -51,6 +51,7 @@ final class Logger {
         case api = "API"
         case auth = "Auth"
         case ui = "UI"
+        case vocabulary = "Vocabulary"
         case general = "General"
 
         var osLog: OSLog {

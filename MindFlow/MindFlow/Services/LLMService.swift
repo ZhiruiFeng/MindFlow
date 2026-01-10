@@ -7,10 +7,11 @@
 
 import Foundation
 
-/// Result from text optimization with teacher explanation
+/// Result from text optimization with teacher explanation and vocabulary suggestions
 struct OptimizationResult {
     let refinedText: String
     let teacherExplanation: String
+    let vocabularySuggestions: [VocabularySuggestion]
 }
 
 /// LLM text optimization service
@@ -34,7 +35,7 @@ class LLMService {
         let optimizationLevel = level ?? settings.optimizationLevel
         let outputStyle = settings.outputStyle
 
-        // Build combined prompt that asks for both refined text and explanation
+        // Build combined prompt that asks for refined text, explanation, and vocabulary suggestions
         let systemPrompt = """
         You are a language optimization assistant and teacher.
 
@@ -44,6 +45,7 @@ class LLMService {
         Your task:
         1. First, optimize the user's text following the guidelines above
         2. Then, provide specific teaching guidance like a teacher giving improvement feedback
+        3. Finally, suggest vocabulary words worth learning from this transcription
 
         Output format (use exactly this structure):
         REFINED_TEXT:
@@ -57,6 +59,9 @@ class LLMService {
         • [Specific point with before/after example or vocabulary suggestion]
         • [Specific point with before/after example or vocabulary suggestion]
 
+        VOCABULARY_SUGGESTIONS:
+        [JSON array of 0-3 vocabulary suggestions]
+
         Teaching guidelines for TEACHER_NOTE:
         - Give specific, actionable feedback with examples (e.g., "Instead of 'very good', use 'excellent' or 'outstanding' for stronger impact")
         - Show which vocabulary or sentence structure would better express the intended meaning
@@ -64,6 +69,19 @@ class LLMService {
         - Provide a score out of 10 for the original text
         - DO NOT give generic comments like "removed filler words" or "improved expression"
         - Focus on WHY a specific word or structure is better for the meaning
+
+        Vocabulary suggestion guidelines:
+        - Select 0-3 words from the REFINED text that would benefit English language learners
+        - Prioritize: uncommon but useful words, nuanced vocabulary, commonly confused words, eloquent alternatives
+        - Exclude: top 1000 most common English words, proper nouns (names/places), slang
+        - For each word, provide a JSON object with these fields:
+          - word: the vocabulary word
+          - partOfSpeech: noun/verb/adjective/adverb/phrase
+          - definition: brief definition (1-2 sentences)
+          - reason: why this word is worth learning (max 50 words)
+          - sourceSentence: the exact sentence from the refined text where this word appears
+        - Output as a valid JSON array, or empty array [] if no good vocabulary candidates
+        - Example: [{"word": "eloquent", "partOfSpeech": "adjective", "definition": "fluent or persuasive in speaking or writing", "reason": "More expressive than 'well-spoken'", "sourceSentence": "She gave an eloquent presentation."}]
 
         Important rules:
         - Keep the core meaning and key information
@@ -75,7 +93,7 @@ class LLMService {
             systemPrompt: systemPrompt,
             userPrompt: text,
             temperature: 0.3,
-            maxTokens: 1500
+            maxTokens: 2000  // Increased for vocabulary suggestions
         )
 
         // Parse the response to extract refined text and teacher note
@@ -216,7 +234,8 @@ class LLMService {
             Logger.warning("Could not find markers in response, using fallback parsing", category: .optimization)
             return OptimizationResult(
                 refinedText: trimmed,
-                teacherExplanation: "No explanation provided"
+                teacherExplanation: "No explanation provided",
+                vocabularySuggestions: []
             )
         }
 
@@ -226,15 +245,74 @@ class LLMService {
         let refinedText = String(trimmed[refinedStart..<refinedEnd])
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Extract teacher note (after TEACHER_NOTE:)
+        // Check if VOCABULARY_SUGGESTIONS marker exists
+        let vocabRange = trimmed.range(of: "VOCABULARY_SUGGESTIONS:")
+
+        // Extract teacher note (between TEACHER_NOTE: and VOCABULARY_SUGGESTIONS: if present)
         let teacherStart = trimmed.index(teacherRange.upperBound, offsetBy: 0)
-        let teacherExplanation = String(trimmed[teacherStart...])
+        let teacherEnd = vocabRange?.lowerBound ?? trimmed.endIndex
+        let teacherExplanation = String(trimmed[teacherStart..<teacherEnd])
             .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Parse vocabulary suggestions
+        let vocabularySuggestions = parseVocabularySuggestions(from: trimmed, vocabRange: vocabRange)
 
         return OptimizationResult(
             refinedText: refinedText,
-            teacherExplanation: teacherExplanation
+            teacherExplanation: teacherExplanation,
+            vocabularySuggestions: vocabularySuggestions
         )
+    }
+
+    /// Parse vocabulary suggestions JSON from the LLM response
+    /// - Parameters:
+    ///   - response: The full LLM response
+    ///   - vocabRange: Optional range of the VOCABULARY_SUGGESTIONS marker
+    /// - Returns: Array of VocabularySuggestion (empty if parsing fails)
+    private func parseVocabularySuggestions(from response: String, vocabRange: Range<String.Index>?) -> [VocabularySuggestion] {
+        guard let vocabRange = vocabRange else {
+            Logger.info("No VOCABULARY_SUGGESTIONS marker found in response", category: .optimization)
+            return []
+        }
+
+        // Extract everything after VOCABULARY_SUGGESTIONS:
+        let vocabStart = response.index(vocabRange.upperBound, offsetBy: 0)
+        var vocabJSON = String(response[vocabStart...])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Clean up the response - remove markdown code blocks if present
+        if vocabJSON.hasPrefix("```json") {
+            vocabJSON = String(vocabJSON.dropFirst(7))
+        } else if vocabJSON.hasPrefix("```") {
+            vocabJSON = String(vocabJSON.dropFirst(3))
+        }
+        if vocabJSON.hasSuffix("```") {
+            vocabJSON = String(vocabJSON.dropLast(3))
+        }
+        vocabJSON = vocabJSON.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Find the JSON array boundaries
+        guard let arrayStart = vocabJSON.firstIndex(of: "["),
+              let arrayEnd = vocabJSON.lastIndex(of: "]") else {
+            Logger.warning("Could not find JSON array in vocabulary suggestions", category: .optimization)
+            return []
+        }
+
+        let jsonString = String(vocabJSON[arrayStart...arrayEnd])
+
+        guard let jsonData = jsonString.data(using: .utf8) else {
+            Logger.warning("Could not convert vocabulary suggestions to data", category: .optimization)
+            return []
+        }
+
+        do {
+            let suggestions = try JSONDecoder().decode([VocabularySuggestion].self, from: jsonData)
+            Logger.info("Parsed \(suggestions.count) vocabulary suggestions", category: .optimization)
+            return suggestions.filter { $0.isValid }
+        } catch {
+            Logger.warning("Failed to parse vocabulary suggestions: \(error)", category: .optimization)
+            return []
+        }
     }
 }
 

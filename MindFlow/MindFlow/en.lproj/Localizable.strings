@@ -136,3 +136,12 @@
 "alert.permission_required" = "Permission Required: %@";
 "alert.open_system_settings" = "Open System Settings";
 "alert.later" = "Later";
+
+// MARK: - Vocabulary Suggestions
+"vocabulary.suggestions.title" = "Vocabulary Suggestions";
+"vocabulary.suggestions.add" = "Add to vocabulary";
+"vocabulary.suggestions.added" = "Added";
+"vocabulary.suggestions.add_to_vocab" = "Add to Vocabulary";
+"vocabulary.suggestions.definition" = "Definition";
+"vocabulary.suggestions.why_learn" = "Why learn this word?";
+"vocabulary.suggestions.source" = "Used in context";

@@ -581,3 +581,215 @@ kbd {
   pointer-events: none;
   opacity: 0.6;
 }
+
+/* Vocabulary Suggestions */
+.vocab-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.vocab-icon {
+  margin-right: var(--spacing-xs);
+}
+
+.vocab-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.vocab-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.vocab-item:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--color-primary);
+}
+
+.vocab-item.added {
+  background-color: #E8F5E9;
+  border-color: var(--color-success);
+}
+
+.vocab-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vocab-item-word {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.vocab-item-pos {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: var(--spacing-xs);
+}
+
+.vocab-item-definition {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.vocab-item-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-left: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.vocab-add-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.2s;
+}
+
+.vocab-add-btn:hover {
+  transform: scale(1.2);
+}
+
+.vocab-add-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vocab-added-icon {
+  color: var(--color-success);
+  font-size: 16px;
+}
+
+.vocab-loading {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Vocabulary Detail Modal */
+.vocab-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.vocab-modal-content {
+  background-color: var(--bg-primary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-lg);
+  max-width: 360px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+
+.vocab-modal-close {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  line-height: 1;
+  padding: var(--spacing-xs);
+}
+
+.vocab-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.vocab-detail-word {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.vocab-detail-pos {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background-color: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: var(--spacing-md);
+}
+
+.vocab-detail-section {
+  margin-bottom: var(--spacing-md);
+}
+
+.vocab-detail-section label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.vocab-detail-section > div {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.vocab-detail-source {
+  font-style: italic;
+  background-color: #FFF9E6;
+  padding: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid #FFD700;
+}
+
+.vocab-detail-btn {
+  width: 100%;
+  margin-top: var(--spacing-md);
+}
+
+.vocab-detail-btn.added {
+  background-color: var(--color-success);
+}
+
+.vocab-detail-btn.added:hover {
+  background-color: var(--color-success);
+}

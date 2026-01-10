@@ -25,9 +25,9 @@ struct RecordingTabView: View {
             case .processing, .transcribing, .optimizing:
                 ProcessingStateView(viewModel: viewModel)
             case .completed:
-                if let result = viewModel.result {
+                if viewModel.result != nil {
                     VStack(spacing: 0) {
-                        PreviewView(result: result)
+                        PreviewView(result: $viewModel.result, viewModel: viewModel)
 
                         Divider()
 

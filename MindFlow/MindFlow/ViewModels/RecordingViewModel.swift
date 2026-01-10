@@ -182,17 +182,23 @@ class RecordingViewModel: ObservableObject {
             do {
                 let refinedText: String
                 let teacherExplanation: String?
+                var vocabularySuggestions: [VocabularySuggestion]?
 
                 // Check if teacher notes are enabled
                 if settings.enableTeacherNotes {
-                    // Use combined optimization method to get both refined text and teacher explanation in one call
+                    // Use combined optimization method to get refined text, teacher explanation, and vocabulary suggestions
                     let optimizationResult = try await llmService.optimizeTextWithExplanation(originalText)
                     refinedText = optimizationResult.refinedText
                     teacherExplanation = optimizationResult.teacherExplanation
+                    vocabularySuggestions = optimizationResult.vocabularySuggestions
+
+                    // Check which words are already in vocabulary
+                    vocabularySuggestions = await checkExistingVocabulary(suggestions: optimizationResult.vocabularySuggestions)
                 } else {
-                    // Only optimize text, no teacher explanation
+                    // Only optimize text, no teacher explanation or vocabulary suggestions
                     refinedText = try await llmService.optimizeText(originalText)
                     teacherExplanation = nil
+                    vocabularySuggestions = nil
                 }
 
                 let result = TranscriptionResult(
@@ -205,7 +211,8 @@ class RecordingViewModel: ObservableObject {
                     optimizationModel: settings.llmModel.rawValue,
                     optimizationLevel: settings.optimizationLevel.rawValue,
                     outputStyle: settings.outputStyle.rawValue,
-                    teacherExplanation: teacherExplanation
+                    teacherExplanation: teacherExplanation,
+                    vocabularySuggestions: vocabularySuggestions
                 )
 
                 // Save to server (don't block UI if this fails)
@@ -290,5 +297,82 @@ class RecordingViewModel: ObservableObject {
 
     private func isUserAuthenticated() -> Bool {
         return UserDefaults.standard.string(forKey: "supabase_access_token") != nil
+    }
+
+    /// Check which suggested words already exist in the user's vocabulary
+    /// - Parameter suggestions: Array of vocabulary suggestions from LLM
+    /// - Returns: Suggestions with isAlreadySaved flag updated
+    private func checkExistingVocabulary(suggestions: [VocabularySuggestion]) async -> [VocabularySuggestion] {
+        var updatedSuggestions = suggestions
+        for index in updatedSuggestions.indices {
+            let word = updatedSuggestions[index].word
+            if VocabularyStorage.shared.wordExists(word) {
+                updatedSuggestions[index].isAlreadySaved = true
+            }
+        }
+        return updatedSuggestions
+    }
+
+    // MARK: - Vocabulary Suggestion Actions
+
+    /// Add a vocabulary suggestion to the user's vocabulary
+    /// - Parameter suggestion: The suggestion to add
+    func addSuggestionToVocabulary(_ suggestion: VocabularySuggestion) async {
+        guard var currentResult = result,
+              var suggestions = currentResult.vocabularySuggestions,
+              let index = suggestions.firstIndex(where: { $0.word.lowercased() == suggestion.word.lowercased() }) else {
+            return
+        }
+
+        // Update state to show loading
+        suggestions[index].isAdding = true
+        currentResult.vocabularySuggestions = suggestions
+        result = currentResult
+
+        do {
+            // Fetch full word details using VocabularyLookupService
+            let wordExplanation = try await VocabularyLookupService.shared.lookupWord(
+                suggestion.word,
+                context: suggestion.sourceSentence
+            )
+
+            // Save to vocabulary storage
+            VocabularyStorage.shared.addWord(
+                from: wordExplanation,
+                userContext: suggestion.sourceSentence
+            )
+
+            // Update state to show success
+            suggestions[index].isAdding = false
+            suggestions[index].wasJustAdded = true
+            suggestions[index].isAlreadySaved = true
+            currentResult.vocabularySuggestions = suggestions
+            result = currentResult
+
+            Logger.info("Added vocabulary suggestion: \(suggestion.word)", category: .vocabulary)
+        } catch {
+            // Reset loading state on error
+            suggestions[index].isAdding = false
+            currentResult.vocabularySuggestions = suggestions
+            result = currentResult
+
+            Logger.error("Failed to add vocabulary suggestion: \(suggestion.word)", category: .vocabulary, error: error)
+        }
+    }
+
+    /// Update a suggestion in the current result
+    /// - Parameters:
+    ///   - word: The word to update
+    ///   - update: Closure to perform the update
+    func updateSuggestion(_ word: String, update: (inout VocabularySuggestion) -> Void) {
+        guard var currentResult = result,
+              var suggestions = currentResult.vocabularySuggestions,
+              let index = suggestions.firstIndex(where: { $0.word.lowercased() == word.lowercased() }) else {
+            return
+        }
+
+        update(&suggestions[index])
+        currentResult.vocabularySuggestions = suggestions
+        result = currentResult
     }
 }

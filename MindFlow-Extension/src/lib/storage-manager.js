@@ -558,6 +558,14 @@ export class StorageManager {
   }
 
   /**
+   * Alias for getVocabulary for compatibility
+   * @returns {Promise<Array>} Array of vocabulary entries
+   */
+  async getAllVocabularyWords() {
+    return this.getVocabulary();
+  }
+
+  /**
    * Save vocabulary
    * @param {Array} vocabulary - Array of vocabulary entries
    * @returns {Promise<void>}

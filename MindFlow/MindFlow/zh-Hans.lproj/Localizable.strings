@@ -136,3 +136,12 @@
 "alert.permission_required" = "需要%@权限";
 "alert.open_system_settings" = "打开系统设置";
 "alert.later" = "稍后";
+
+// MARK: - Vocabulary Suggestions
+"vocabulary.suggestions.title" = "单词推荐";
+"vocabulary.suggestions.add" = "添加到词汇表";
+"vocabulary.suggestions.added" = "已添加";
+"vocabulary.suggestions.add_to_vocab" = "添加到词汇表";
+"vocabulary.suggestions.definition" = "定义";
+"vocabulary.suggestions.why_learn" = "为什么要学这个词？";
+"vocabulary.suggestions.source" = "上下文用法";

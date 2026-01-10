@@ -1,0 +1,146 @@
+# Vocabulary Suggestions Schema
+# Feature: 002-voice-vocab-suggestions
+#
+# This schema defines the data contract for vocabulary suggestions
+# embedded in the LLM optimization response.
+
+openapi: 3.0.3
+info:
+  title: Vocabulary Suggestions Internal Schema
+  description: |
+    Schema for vocabulary suggestions returned within the LLM optimization response.
+    This is not an HTTP API - it defines the structure of the VOCABULARY_SUGGESTIONS
+    section in the prompt response.
+  version: 1.0.0
+
+components:
+  schemas:
+    VocabularySuggestion:
+      type: object
+      description: A vocabulary word suggested for learning from a transcription
+      required:
+        - word
+        - partOfSpeech
+        - definition
+        - reason
+        - sourceSentence
+      properties:
+        word:
+          type: string
+          description: The suggested vocabulary word
+          minLength: 1
+          maxLength: 100
+          example: "eloquent"
+        partOfSpeech:
+          type: string
+          description: Grammatical category of the word
+          enum:
+            - noun
+            - verb
+            - adjective
+            - adverb
+            - preposition
+            - conjunction
+            - interjection
+            - phrase
+          example: "adjective"
+        definition:
+          type: string
+          description: Brief definition of the word (1-2 sentences)
+          minLength: 1
+          maxLength: 500
+          example: "fluent or persuasive in speaking or writing"
+        reason:
+          type: string
+          description: Explanation of why this word is worth learning
+          minLength: 1
+          maxLength: 300
+          example: "More expressive than 'well-spoken', commonly used in professional contexts"
+        sourceSentence:
+          type: string
+          description: The sentence from the transcription where the word appears
+          minLength: 1
+          maxLength: 1000
+          example: "The speaker gave an eloquent presentation about climate change."
+
+    VocabularySuggestionsArray:
+      type: array
+      description: Array of 0-3 vocabulary suggestions
+      minItems: 0
+      maxItems: 3
+      items:
+        $ref: '#/components/schemas/VocabularySuggestion'
+
+    # Extended OptimizationResult including suggestions
+    OptimizationResult:
+      type: object
+      description: Complete result from text optimization including suggestions
+      required:
+        - refinedText
+        - teacherExplanation
+        - vocabularySuggestions
+      properties:
+        refinedText:
+          type: string
+          description: The optimized/refined version of the input text
+        teacherExplanation:
+          type: string
+          description: Teaching feedback with score and improvement points
+        vocabularySuggestions:
+          $ref: '#/components/schemas/VocabularySuggestionsArray'
+
+    # Client-side enriched suggestion (after vocabulary check)
+    EnrichedVocabularySuggestion:
+      allOf:
+        - $ref: '#/components/schemas/VocabularySuggestion'
+        - type: object
+          properties:
+            isAlreadySaved:
+              type: boolean
+              description: Whether this word already exists in user's vocabulary
+              default: false
+            isAdding:
+              type: boolean
+              description: Whether the word is currently being added (loading state)
+              default: false
+            wasJustAdded:
+              type: boolean
+              description: Whether the word was just added (success state)
+              default: false
+
+# LLM Response Format Example
+#
+# The LLM returns a text response with markers:
+#
+# ```
+# REFINED_TEXT:
+# [Optimized text here]
+#
+# TEACHER_NOTE:
+# Score: 7/10
+#
+# Key improvements:
+# • [improvement 1]
+# • [improvement 2]
+#
+# VOCABULARY_SUGGESTIONS:
+# [
+#   {
+#     "word": "eloquent",
+#     "partOfSpeech": "adjective",
+#     "definition": "fluent or persuasive in speaking or writing",
+#     "reason": "More expressive than 'well-spoken'",
+#     "sourceSentence": "The speaker gave an eloquent presentation."
+#   },
+#   {
+#     "word": "concise",
+#     "partOfSpeech": "adjective",
+#     "definition": "giving information clearly in few words",
+#     "reason": "Essential for professional communication",
+#     "sourceSentence": "Keep your answers concise."
+#   }
+# ]
+# ```
+#
+# Parser extracts each section by finding markers and parses the
+# VOCABULARY_SUGGESTIONS section as JSON.

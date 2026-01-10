@@ -117,6 +117,18 @@ class PopupController {
       historyBtn: document.getElementById('history-btn'),
       settingsBtn: document.getElementById('settings-btn'),
 
+      // Vocabulary suggestions
+      vocabSuggestionsSection: document.getElementById('vocab-suggestions-section'),
+      vocabSuggestionsList: document.getElementById('vocab-suggestions-list'),
+      vocabDetailModal: document.getElementById('vocab-detail-modal'),
+      vocabModalClose: document.getElementById('vocab-modal-close'),
+      vocabDetailWord: document.getElementById('vocab-detail-word'),
+      vocabDetailPos: document.getElementById('vocab-detail-pos'),
+      vocabDetailDefinition: document.getElementById('vocab-detail-definition'),
+      vocabDetailReason: document.getElementById('vocab-detail-reason'),
+      vocabDetailSource: document.getElementById('vocab-detail-source'),
+      vocabDetailAddBtn: document.getElementById('vocab-detail-add-btn'),
+
       // Toast
       toast: document.getElementById('toast'),
       toastMessage: document.getElementById('toast-message')
@@ -145,6 +157,15 @@ class PopupController {
     this.elements.vocabularyBtn.addEventListener('click', () => this.handleVocabulary());
     this.elements.historyBtn.addEventListener('click', () => this.handleHistory());
     this.elements.settingsBtn.addEventListener('click', () => this.handleSettings());
+
+    // Vocabulary modal
+    this.elements.vocabModalClose.addEventListener('click', () => this.closeVocabModal());
+    this.elements.vocabDetailModal.addEventListener('click', (e) => {
+      if (e.target === this.elements.vocabDetailModal) {
+        this.closeVocabModal();
+      }
+    });
+    this.elements.vocabDetailAddBtn.addEventListener('click', () => this.handleAddVocabFromModal());
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -372,13 +393,18 @@ class PopupController {
 
       // Handle result based on whether it includes teacher notes
       if (typeof result === 'object' && result.refinedText) {
-        // Teacher notes included
+        // Teacher notes and vocabulary suggestions included
         this.currentResult.optimized = result.refinedText;
         this.currentResult.teacherNotes = result.teacherNotes;
+        this.currentResult.vocabularySuggestions = result.vocabularySuggestions || [];
+
+        // Check which words already exist in vocabulary
+        await this.checkExistingVocabulary();
       } else {
         // Simple text result
         this.currentResult.optimized = result;
         this.currentResult.teacherNotes = null;
+        this.currentResult.vocabularySuggestions = [];
       }
 
       // Show results
@@ -430,6 +456,14 @@ class PopupController {
       this.elements.teacherNotesSection.style.display = 'block';
     } else {
       this.elements.teacherNotesSection.style.display = 'none';
+    }
+
+    // Show/hide vocabulary suggestions section
+    if (this.currentResult.vocabularySuggestions && this.currentResult.vocabularySuggestions.length > 0) {
+      this.renderVocabularySuggestions();
+      this.elements.vocabSuggestionsSection.style.display = 'block';
+    } else {
+      this.elements.vocabSuggestionsSection.style.display = 'none';
     }
 
     // Show optimization level
@@ -780,6 +814,218 @@ class PopupController {
       // Don't show error to user, sync is optional
       log('Failed to sync to backend, continuing...');
       return false;
+    }
+  }
+
+  // ================================
+  // Vocabulary Suggestions Methods
+  // ================================
+
+  /**
+   * Check which suggested words already exist in user's vocabulary
+   */
+  async checkExistingVocabulary() {
+    if (!this.currentResult.vocabularySuggestions || this.currentResult.vocabularySuggestions.length === 0) {
+      return;
+    }
+
+    try {
+      const existingWords = await storageManager.getAllVocabularyWords();
+      const existingWordSet = new Set(existingWords.map(w => w.word.toLowerCase()));
+
+      this.currentResult.vocabularySuggestions = this.currentResult.vocabularySuggestions.map(s => ({
+        ...s,
+        isAlreadySaved: existingWordSet.has(s.word.toLowerCase())
+      }));
+    } catch (error) {
+      logError('Failed to check existing vocabulary:', error);
+    }
+  }
+
+  /**
+   * Render vocabulary suggestions list
+   */
+  renderVocabularySuggestions() {
+    const container = this.elements.vocabSuggestionsList;
+    container.innerHTML = '';
+
+    this.currentResult.vocabularySuggestions.forEach((suggestion, index) => {
+      const item = this.createVocabSuggestionItem(suggestion, index);
+      container.appendChild(item);
+    });
+  }
+
+  /**
+   * Create a vocabulary suggestion item element
+   */
+  createVocabSuggestionItem(suggestion, index) {
+    const item = document.createElement('div');
+    item.className = 'vocab-item' + (suggestion.wasJustAdded ? ' added' : '');
+    item.dataset.index = index;
+
+    // Info section
+    const info = document.createElement('div');
+    info.className = 'vocab-item-info';
+
+    const wordRow = document.createElement('div');
+    const word = document.createElement('span');
+    word.className = 'vocab-item-word';
+    word.textContent = suggestion.word;
+
+    const pos = document.createElement('span');
+    pos.className = 'vocab-item-pos';
+    pos.textContent = suggestion.partOfSpeech;
+
+    wordRow.appendChild(word);
+    wordRow.appendChild(pos);
+
+    const definition = document.createElement('div');
+    definition.className = 'vocab-item-definition';
+    definition.textContent = suggestion.definition;
+
+    info.appendChild(wordRow);
+    info.appendChild(definition);
+
+    // Action section
+    const action = document.createElement('div');
+    action.className = 'vocab-item-action';
+
+    if (suggestion.isAdding) {
+      // Loading state
+      const loading = document.createElement('div');
+      loading.className = 'vocab-loading';
+      action.appendChild(loading);
+    } else if (suggestion.wasJustAdded || suggestion.isAlreadySaved) {
+      // Added state
+      const icon = document.createElement('span');
+      icon.className = 'vocab-added-icon';
+      icon.textContent = '✓';
+      action.appendChild(icon);
+    } else {
+      // Add button
+      const btn = document.createElement('button');
+      btn.className = 'vocab-add-btn';
+      btn.textContent = '+';
+      btn.title = 'Add to vocabulary';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleAddVocabSuggestion(index);
+      });
+      action.appendChild(btn);
+    }
+
+    item.appendChild(info);
+    item.appendChild(action);
+
+    // Click to expand
+    item.addEventListener('click', () => this.showVocabModal(index));
+
+    return item;
+  }
+
+  /**
+   * Show vocabulary detail modal
+   */
+  showVocabModal(index) {
+    const suggestion = this.currentResult.vocabularySuggestions[index];
+    if (!suggestion) return;
+
+    this.currentVocabModalIndex = index;
+
+    this.elements.vocabDetailWord.textContent = suggestion.word;
+    this.elements.vocabDetailPos.textContent = suggestion.partOfSpeech;
+    this.elements.vocabDetailDefinition.textContent = suggestion.definition;
+    this.elements.vocabDetailReason.textContent = suggestion.reason;
+    this.elements.vocabDetailSource.textContent = suggestion.sourceSentence;
+
+    // Update button state
+    this.updateVocabModalButton(suggestion);
+
+    this.elements.vocabDetailModal.style.display = 'flex';
+  }
+
+  /**
+   * Update the vocabulary modal add button state
+   */
+  updateVocabModalButton(suggestion) {
+    const btn = this.elements.vocabDetailAddBtn;
+
+    if (suggestion.isAdding) {
+      btn.textContent = 'Adding...';
+      btn.disabled = true;
+      btn.classList.remove('added');
+    } else if (suggestion.wasJustAdded || suggestion.isAlreadySaved) {
+      btn.textContent = '✓ Added to Vocabulary';
+      btn.disabled = true;
+      btn.classList.add('added');
+    } else {
+      btn.textContent = 'Add to Vocabulary';
+      btn.disabled = false;
+      btn.classList.remove('added');
+    }
+  }
+
+  /**
+   * Close vocabulary detail modal
+   */
+  closeVocabModal() {
+    this.elements.vocabDetailModal.style.display = 'none';
+    this.currentVocabModalIndex = null;
+  }
+
+  /**
+   * Handle adding vocabulary suggestion from modal
+   */
+  handleAddVocabFromModal() {
+    if (this.currentVocabModalIndex !== null) {
+      this.handleAddVocabSuggestion(this.currentVocabModalIndex);
+    }
+  }
+
+  /**
+   * Handle adding a vocabulary suggestion
+   */
+  async handleAddVocabSuggestion(index) {
+    const suggestions = this.currentResult.vocabularySuggestions;
+    if (!suggestions || index >= suggestions.length) return;
+
+    const suggestion = suggestions[index];
+    if (suggestion.isAlreadySaved || suggestion.wasJustAdded || suggestion.isAdding) return;
+
+    // Update state to loading
+    suggestion.isAdding = true;
+    this.renderVocabularySuggestions();
+    if (this.currentVocabModalIndex === index) {
+      this.updateVocabModalButton(suggestion);
+    }
+
+    try {
+      // Save to vocabulary storage
+      await storageManager.addVocabularyWord({
+        word: suggestion.word,
+        partOfSpeech: suggestion.partOfSpeech,
+        definition: suggestion.definition,
+        reason: suggestion.reason,
+        sourceSentence: suggestion.sourceSentence,
+        addedAt: new Date().toISOString()
+      });
+
+      // Update state to success
+      suggestion.isAdding = false;
+      suggestion.wasJustAdded = true;
+      suggestion.isAlreadySaved = true;
+
+      log(`Added vocabulary word: ${suggestion.word}`);
+      this.showToast(`✓ Added "${suggestion.word}" to vocabulary`);
+    } catch (error) {
+      logError('Failed to add vocabulary word:', error);
+      suggestion.isAdding = false;
+      this.showToast(`⚠️ Failed to add "${suggestion.word}"`);
+    }
+
+    this.renderVocabularySuggestions();
+    if (this.currentVocabModalIndex === index) {
+      this.updateVocabModalButton(suggestion);
     }
   }
 }
