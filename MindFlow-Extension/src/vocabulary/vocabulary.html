@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow Vocabulary</title>
+  <link rel="stylesheet" href="vocabulary.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1>MindFlow Vocabulary</h1>
+      </div>
+      <div class="header-right">
+        <button id="add-word-btn" class="btn btn-primary">
+          <span class="icon">+</span> Add Word
+        </button>
+        <button id="start-review-btn" class="btn btn-secondary">
+          <span class="icon">&#128218;</span> Review (<span id="due-count">0</span>)
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="main">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="stats-summary">
+          <div class="stat">
+            <span class="stat-value" id="total-words">0</span>
+            <span class="stat-label">Total Words</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="due-today">0</span>
+            <span class="stat-label">Due Today</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="streak-days">0</span>
+            <span class="stat-label">Day Streak</span>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <h3>Library</h3>
+          <ul>
+            <li><a href="#" data-filter="all" class="active">All Words</a></li>
+            <li><a href="#" data-filter="favorites">Favorites</a></li>
+            <li><a href="#" data-filter="due">Due for Review</a></li>
+          </ul>
+
+          <h3>Mastery Level</h3>
+          <ul id="mastery-filters">
+            <li><a href="#" data-filter="mastery-0">New</a></li>
+            <li><a href="#" data-filter="mastery-1">Learning</a></li>
+            <li><a href="#" data-filter="mastery-2">Reviewing</a></li>
+            <li><a href="#" data-filter="mastery-3">Familiar</a></li>
+            <li><a href="#" data-filter="mastery-4">Mastered</a></li>
+          </ul>
+
+          <h3>Categories</h3>
+          <ul id="category-filters">
+            <!-- Dynamic categories -->
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Content area -->
+      <section class="content">
+        <!-- Search bar -->
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Search words...">
+          <button id="clear-search" class="btn-icon" style="display: none;">&#x2715;</button>
+        </div>
+
+        <!-- Word list -->
+        <div id="word-list" class="word-list">
+          <!-- Words populated dynamically -->
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+          <span class="empty-icon">&#128218;</span>
+          <h2>No Words Yet</h2>
+          <p>Start building your vocabulary by adding your first word.</p>
+          <button id="add-first-word-btn" class="btn btn-primary">Add Your First Word</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Add Word Modal -->
+    <div id="add-word-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add New Word</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="word-input">Word</label>
+            <input type="text" id="word-input" placeholder="Enter a word to look up">
+          </div>
+          <div class="form-group">
+            <label for="context-input">Context (Optional)</label>
+            <textarea id="context-input" placeholder="Where did you encounter this word?"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="category-input">Category (Optional)</label>
+            <input type="text" id="category-input" placeholder="e.g., Work, Daily, Academic">
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="manual-entry-checkbox">
+              Enter manually (offline mode)
+            </label>
+          </div>
+          <div id="manual-entry-fields" style="display: none;">
+            <div class="form-group">
+              <label for="definition-en">English Definition</label>
+              <textarea id="definition-en" placeholder="Enter the English definition"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="definition-cn">Chinese Definition</label>
+              <textarea id="definition-cn" placeholder="输入中文释义"></textarea>
+            </div>
+          </div>
+          <div id="lookup-preview" class="lookup-preview" style="display: none;">
+            <!-- Preview populated after lookup -->
+          </div>
+          <div id="lookup-error" class="error-message" style="display: none;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary modal-cancel">Cancel</button>
+          <button id="lookup-btn" class="btn btn-primary">Look Up</button>
+          <button id="save-word-btn" class="btn btn-primary" style="display: none;">Save Word</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Word Detail Modal -->
+    <div id="word-detail-modal" class="modal" style="display: none;">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h2 id="detail-word">Word</h2>
+          <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" id="word-detail-content">
+          <!-- Word details populated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="review-modal" class="modal" style="display: none;">
+      <div class="modal-content modal-fullscreen">
+        <div class="review-header">
+          <button id="close-review" class="btn-icon">&times;</button>
+          <div class="review-progress">
+            <span id="review-current">1</span> / <span id="review-total">10</span>
+          </div>
+          <div class="review-stats">
+            <span class="correct">&#10003; <span id="review-correct">0</span></span>
+            <span class="incorrect">&#10007; <span id="review-incorrect">0</span></span>
+          </div>
+        </div>
+        <div class="review-content">
+          <div id="flashcard" class="flashcard">
+            <!-- Flashcard content -->
+          </div>
+        </div>
+        <div class="review-footer" id="review-actions" style="display: none;">
+          <button class="btn-rate btn-forgot" data-quality="0">
+            <span>&#10007;</span>
+            Forgot
+            <small>[1]</small>
+          </button>
+          <button class="btn-rate btn-hard" data-quality="1">
+            <span>!</span>
+            Hard
+            <small>[2]</small>
+          </button>
+          <button class="btn-rate btn-good" data-quality="2">
+            <span>&#10003;</span>
+            Good
+            <small>[3]</small>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="vocabulary.js" type="module"></script>
+</body>
+</html>

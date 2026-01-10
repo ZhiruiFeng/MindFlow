@@ -1,0 +1,685 @@
+openapi: 3.0.3
+info:
+  title: MindFlow Vocabulary API
+  description: |
+    API contract for vocabulary learning feature cloud sync.
+    This API is optional - the feature works fully offline.
+    Backend: Supabase PostgreSQL with Row Level Security.
+  version: 1.0.0
+  contact:
+    name: MindFlow
+
+servers:
+  - url: https://zmemory.zephyros.app/api/v1
+    description: Production server (ZephyrOS/ZMemory backend)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Vocabulary
+    description: Vocabulary entry CRUD operations
+  - name: Review
+    description: Review session tracking
+  - name: Statistics
+    description: Learning statistics
+
+paths:
+  /vocabulary:
+    get:
+      tags: [Vocabulary]
+      summary: List vocabulary entries
+      description: Get paginated list of user's vocabulary entries
+      operationId: listVocabulary
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: mastery_level
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 4
+        - name: due_for_review
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          description: Search in word, definitions, tags
+          schema:
+            type: string
+        - name: updated_since
+          in: query
+          description: ISO 8601 timestamp for incremental sync
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Vocabulary entries retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/VocabularyEntry'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Vocabulary]
+      summary: Create vocabulary entry
+      description: Add a new word to user's vocabulary
+      operationId: createVocabulary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VocabularyEntryCreate'
+      responses:
+        '201':
+          description: Vocabulary entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Word already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /vocabulary/{id}:
+    get:
+      tags: [Vocabulary]
+      summary: Get vocabulary entry
+      operationId: getVocabulary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vocabulary entry retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Vocabulary]
+      summary: Update vocabulary entry
+      operationId: updateVocabulary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VocabularyEntryUpdate'
+      responses:
+        '200':
+          description: Vocabulary entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VocabularyEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Vocabulary]
+      summary: Delete vocabulary entry
+      operationId: deleteVocabulary
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Vocabulary entry deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /vocabulary/batch:
+    post:
+      tags: [Vocabulary]
+      summary: Batch sync vocabulary
+      description: Sync multiple vocabulary entries at once (for offline sync)
+      operationId: batchSyncVocabulary
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                entries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/VocabularyEntrySync'
+                  maxItems: 100
+      responses:
+        '200':
+          description: Batch sync completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  synced:
+                    type: integer
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        client_id:
+                          type: string
+                        error:
+                          type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /review-sessions:
+    get:
+      tags: [Review]
+      summary: List review sessions
+      operationId: listReviewSessions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Review sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReviewSession'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Review]
+      summary: Create review session
+      operationId: createReviewSession
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewSessionCreate'
+      responses:
+        '201':
+          description: Review session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /statistics:
+    get:
+      tags: [Statistics]
+      summary: Get learning statistics
+      operationId: getStatistics
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Statistics retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  daily:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LearningStats'
+                  summary:
+                    type: object
+                    properties:
+                      total_words:
+                        type: integer
+                      words_by_mastery:
+                        type: object
+                        additionalProperties:
+                          type: integer
+                      current_streak:
+                        type: integer
+                      overall_accuracy:
+                        type: number
+                        format: float
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT access token
+
+  schemas:
+    VocabularyEntry:
+      type: object
+      required:
+        - id
+        - word
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        word:
+          type: string
+          maxLength: 255
+        phonetic:
+          type: string
+          maxLength: 100
+        part_of_speech:
+          type: string
+          maxLength: 50
+        definition_en:
+          type: string
+        definition_cn:
+          type: string
+        example_sentences:
+          type: array
+          items:
+            type: object
+            properties:
+              en:
+                type: string
+              cn:
+                type: string
+        synonyms:
+          type: string
+        antonyms:
+          type: string
+        word_family:
+          type: string
+        usage_notes:
+          type: string
+        etymology:
+          type: string
+        memory_tips:
+          type: string
+        user_context:
+          type: string
+        source_interaction_id:
+          type: string
+          format: uuid
+        tags:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+          maxLength: 100
+        is_favorite:
+          type: boolean
+          default: false
+        is_archived:
+          type: boolean
+          default: false
+        mastery_level:
+          type: integer
+          minimum: 0
+          maximum: 4
+          default: 0
+        review_count:
+          type: integer
+          default: 0
+        correct_count:
+          type: integer
+          default: 0
+        last_reviewed_at:
+          type: string
+          format: date-time
+        next_review_at:
+          type: string
+          format: date-time
+        ease_factor:
+          type: number
+          format: float
+          default: 2.5
+        interval_days:
+          type: integer
+          default: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    VocabularyEntryCreate:
+      type: object
+      required:
+        - word
+      properties:
+        word:
+          type: string
+          maxLength: 255
+        phonetic:
+          type: string
+        part_of_speech:
+          type: string
+        definition_en:
+          type: string
+        definition_cn:
+          type: string
+        example_sentences:
+          type: array
+          items:
+            type: object
+            properties:
+              en:
+                type: string
+              cn:
+                type: string
+        synonyms:
+          type: string
+        antonyms:
+          type: string
+        word_family:
+          type: string
+        usage_notes:
+          type: string
+        etymology:
+          type: string
+        memory_tips:
+          type: string
+        user_context:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        client_id:
+          type: string
+          description: Client-side UUID for sync mapping
+
+    VocabularyEntryUpdate:
+      type: object
+      properties:
+        phonetic:
+          type: string
+        part_of_speech:
+          type: string
+        definition_en:
+          type: string
+        definition_cn:
+          type: string
+        example_sentences:
+          type: array
+          items:
+            type: object
+        synonyms:
+          type: string
+        antonyms:
+          type: string
+        word_family:
+          type: string
+        usage_notes:
+          type: string
+        etymology:
+          type: string
+        memory_tips:
+          type: string
+        user_context:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        is_favorite:
+          type: boolean
+        is_archived:
+          type: boolean
+        mastery_level:
+          type: integer
+        review_count:
+          type: integer
+        correct_count:
+          type: integer
+        last_reviewed_at:
+          type: string
+          format: date-time
+        next_review_at:
+          type: string
+          format: date-time
+        ease_factor:
+          type: number
+        interval_days:
+          type: integer
+
+    VocabularyEntrySync:
+      allOf:
+        - $ref: '#/components/schemas/VocabularyEntryCreate'
+        - type: object
+          required:
+            - client_id
+            - updated_at
+          properties:
+            client_id:
+              type: string
+              format: uuid
+            updated_at:
+              type: string
+              format: date-time
+
+    ReviewSession:
+      type: object
+      required:
+        - id
+        - started_at
+        - total_words
+        - review_mode
+      properties:
+        id:
+          type: string
+          format: uuid
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        total_words:
+          type: integer
+        correct_count:
+          type: integer
+        incorrect_count:
+          type: integer
+        skipped_count:
+          type: integer
+        review_mode:
+          type: string
+          enum: [flashcard, reverse, context]
+        duration_seconds:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    ReviewSessionCreate:
+      type: object
+      required:
+        - started_at
+        - total_words
+        - review_mode
+      properties:
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        total_words:
+          type: integer
+        correct_count:
+          type: integer
+        incorrect_count:
+          type: integer
+        skipped_count:
+          type: integer
+        review_mode:
+          type: string
+          enum: [flashcard, reverse, context]
+        duration_seconds:
+          type: integer
+
+    LearningStats:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stat_date:
+          type: string
+          format: date
+        words_added:
+          type: integer
+        words_reviewed:
+          type: integer
+        correct_reviews:
+          type: integer
+        incorrect_reviews:
+          type: integer
+        study_time_seconds:
+          type: integer
+        streak_days:
+          type: integer
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        has_more:
+          type: boolean
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

@@ -116,6 +116,64 @@ class Settings: ObservableObject {
         }
     }
 
+    // MARK: - Vocabulary Settings
+
+    /// Daily goal for new words to add
+    @Published var vocabularyDailyNewWordsGoal: Int {
+        didSet {
+            UserDefaults.standard.set(vocabularyDailyNewWordsGoal, forKey: "vocabulary_daily_new_words_goal")
+        }
+    }
+
+    /// Daily goal for words to review
+    @Published var vocabularyDailyReviewGoal: Int {
+        didSet {
+            UserDefaults.standard.set(vocabularyDailyReviewGoal, forKey: "vocabulary_daily_review_goal")
+        }
+    }
+
+    /// Enable review reminder notifications
+    @Published var vocabularyEnableReminders: Bool {
+        didSet {
+            UserDefaults.standard.set(vocabularyEnableReminders, forKey: "vocabulary_enable_reminders")
+        }
+    }
+
+    /// Review reminder time (hour in 24h format, e.g., 9 for 9:00 AM)
+    @Published var vocabularyReminderHour: Int {
+        didSet {
+            UserDefaults.standard.set(vocabularyReminderHour, forKey: "vocabulary_reminder_hour")
+        }
+    }
+
+    /// Default category for new words
+    @Published var vocabularyDefaultCategory: String {
+        didSet {
+            UserDefaults.standard.set(vocabularyDefaultCategory, forKey: "vocabulary_default_category")
+        }
+    }
+
+    /// Auto-play pronunciation when viewing word details
+    @Published var vocabularyAutoPlayPronunciation: Bool {
+        didSet {
+            UserDefaults.standard.set(vocabularyAutoPlayPronunciation, forKey: "vocabulary_auto_play_pronunciation")
+        }
+    }
+
+    /// Sync vocabulary to backend (Supabase)
+    @Published var vocabularySyncEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(vocabularySyncEnabled, forKey: "vocabulary_sync_enabled")
+        }
+    }
+
+    /// Enable review reminder notifications
+    @Published var vocabularyReviewRemindersEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(vocabularyReviewRemindersEnabled, forKey: "vocabulary_review_reminders_enabled")
+        }
+    }
+
     // MARK: - Initialization
     
     private init() {
@@ -155,11 +213,46 @@ class Settings: ObservableObject {
         }
         self.autoSyncToBackend = UserDefaults.standard.bool(forKey: "auto_sync_to_backend")
 
-        self.autoSyncThreshold = UserDefaults.standard.double(forKey: "auto_sync_threshold")
-        if self.autoSyncThreshold == 0 {
-            // Default to 30 seconds if not set
-            self.autoSyncThreshold = 30.0
+        let savedThreshold = UserDefaults.standard.double(forKey: "auto_sync_threshold")
+        self.autoSyncThreshold = savedThreshold == 0 ? 30.0 : savedThreshold
+        if savedThreshold == 0 {
             UserDefaults.standard.set(30.0, forKey: "auto_sync_threshold")
+        }
+
+        // Load vocabulary settings - initialize ALL properties first, then apply defaults
+        let savedNewWordsGoal = UserDefaults.standard.integer(forKey: "vocabulary_daily_new_words_goal")
+        self.vocabularyDailyNewWordsGoal = savedNewWordsGoal == 0 ? 5 : savedNewWordsGoal
+
+        let savedReviewGoal = UserDefaults.standard.integer(forKey: "vocabulary_daily_review_goal")
+        self.vocabularyDailyReviewGoal = savedReviewGoal == 0 ? 15 : savedReviewGoal
+
+        if UserDefaults.standard.object(forKey: "vocabulary_enable_reminders") == nil {
+            UserDefaults.standard.set(true, forKey: "vocabulary_enable_reminders")
+        }
+        self.vocabularyEnableReminders = UserDefaults.standard.bool(forKey: "vocabulary_enable_reminders")
+
+        let savedReminderHour = UserDefaults.standard.integer(forKey: "vocabulary_reminder_hour")
+        self.vocabularyReminderHour = savedReminderHour == 0 ? 9 : savedReminderHour
+
+        self.vocabularyDefaultCategory = UserDefaults.standard.string(forKey: "vocabulary_default_category") ?? ""
+        self.vocabularyAutoPlayPronunciation = UserDefaults.standard.bool(forKey: "vocabulary_auto_play_pronunciation")
+        self.vocabularySyncEnabled = UserDefaults.standard.bool(forKey: "vocabulary_sync_enabled")
+
+        // Review reminders default to enabled
+        if UserDefaults.standard.object(forKey: "vocabulary_review_reminders_enabled") == nil {
+            UserDefaults.standard.set(true, forKey: "vocabulary_review_reminders_enabled")
+        }
+        self.vocabularyReviewRemindersEnabled = UserDefaults.standard.bool(forKey: "vocabulary_review_reminders_enabled")
+
+        // Save default values if not already saved
+        if savedNewWordsGoal == 0 {
+            UserDefaults.standard.set(5, forKey: "vocabulary_daily_new_words_goal")
+        }
+        if savedReviewGoal == 0 {
+            UserDefaults.standard.set(15, forKey: "vocabulary_daily_review_goal")
+        }
+        if savedReminderHour == 0 {
+            UserDefaults.standard.set(9, forKey: "vocabulary_reminder_hour")
         }
 
         // Apply language setting (after all properties are initialized)

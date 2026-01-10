@@ -56,7 +56,7 @@ struct MainView: View {
             }
         }
         .pickerStyle(.segmented)
-        .frame(width: 220)
+        .frame(width: 275)
     }
 
     private var contentArea: some View {
@@ -69,6 +69,9 @@ struct MainView: View {
 
             InteractionHistoryView()
                 .tag(MainTab.history)
+
+            VocabularyTabView()
+                .tag(MainTab.vocabulary)
 
             SettingsTabView()
                 .tag(MainTab.settings)
@@ -84,6 +87,7 @@ enum MainTab: CaseIterable {
     case recording
     case localHistory
     case history
+    case vocabulary
     case settings
 
     var icon: String {
@@ -91,6 +95,7 @@ enum MainTab: CaseIterable {
         case .recording: return "mic.circle.fill"
         case .localHistory: return "externaldrive"
         case .history: return "clock.arrow.circlepath"
+        case .vocabulary: return "book.fill"
         case .settings: return "gear"
         }
     }
@@ -100,6 +105,7 @@ enum MainTab: CaseIterable {
         case .recording: return "tab.recording".localized
         case .localHistory: return "Local"
         case .history: return "tab.history".localized
+        case .vocabulary: return "Vocabulary"
         case .settings: return "tab.settings".localized
         }
     }

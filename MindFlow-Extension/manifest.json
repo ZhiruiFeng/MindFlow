@@ -8,7 +8,8 @@
     "activeTab",
     "scripting",
     "offscreen",
-    "identity"
+    "identity",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://api.openai.com/*",

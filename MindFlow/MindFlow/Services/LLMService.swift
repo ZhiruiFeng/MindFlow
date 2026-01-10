@@ -97,7 +97,16 @@ class LLMService {
             style: outputStyle
         )
     }
-    
+
+    /// Look up vocabulary word and get AI explanation
+    /// - Parameters:
+    ///   - word: The word to look up
+    ///   - context: Optional context where the word was encountered
+    /// - Returns: WordExplanation with comprehensive information
+    func lookupVocabulary(_ word: String, context: String? = nil) async throws -> WordExplanation {
+        return try await VocabularyLookupService.shared.lookupWord(word, context: context)
+    }
+
     // MARK: - OpenAI Chat API
 
     private func optimizeWithOpenAI(

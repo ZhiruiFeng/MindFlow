@@ -15,6 +15,10 @@
 import { MESSAGE_TYPES, RECORDING_STATES } from '../common/constants.js';
 import { log, logError } from '../common/utils.js';
 import storageManager from '../lib/storage-manager.js';
+import { VocabularyLookupService } from '../lib/vocabulary-lookup.js';
+
+// Initialize vocabulary lookup service
+const vocabularyLookup = new VocabularyLookupService();
 
 // Extension installation
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -38,6 +42,45 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
     // Handle migration if needed
     // await migrateData(previousVersion, currentVersion);
+  }
+
+  // Create context menu for vocabulary lookup
+  chrome.contextMenus.create({
+    id: 'mindflow-lookup-word',
+    title: 'Look up "%s" in MindFlow',
+    contexts: ['selection']
+  });
+
+  log('Context menu created');
+});
+
+// Context menu click handler
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'mindflow-lookup-word') {
+    const selectedText = info.selectionText?.trim();
+
+    if (!selectedText) {
+      log('No text selected');
+      return;
+    }
+
+    log('Looking up word from context menu:', selectedText);
+
+    // Inject content script if needed
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['src/content/content-script.js']
+      });
+      await new Promise(resolve => setTimeout(resolve, 50));
+    } catch (error) {
+      log('Content script injection skipped:', error.message);
+    }
+
+    // Send message to content script to show popup
+    chrome.tabs.sendMessage(tab.id, {
+      type: 'SHOW_VOCABULARY_POPUP'
+    });
   }
 });
 
@@ -103,6 +146,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case MESSAGE_TYPES.INSERT_TEXT:
       handleInsertText(request, sender, sendResponse);
+      return true;
+
+    case MESSAGE_TYPES.VOCABULARY_LOOKUP:
+    case 'VOCABULARY_LOOKUP':
+      handleVocabularyLookup(request, sender, sendResponse);
+      return true;
+
+    case MESSAGE_TYPES.VOCABULARY_ADD:
+    case 'VOCABULARY_ADD':
+      handleVocabularyAdd(request, sendResponse);
+      return true;
+
+    case MESSAGE_TYPES.VOCABULARY_GET_DUE:
+    case 'VOCABULARY_GET_DUE':
+      handleVocabularyGetDue(sendResponse);
       return true;
 
     default:
@@ -332,6 +390,128 @@ function stopKeepAlive() {
   if (keepAliveInterval) {
     clearInterval(keepAliveInterval);
     keepAliveInterval = null;
+  }
+}
+
+// ============================================
+// Vocabulary Handlers
+// ============================================
+
+/**
+ * Handle vocabulary word lookup
+ */
+async function handleVocabularyLookup(request, sender, sendResponse) {
+  try {
+    const { word, context } = request;
+
+    if (!word) {
+      throw new Error('No word provided');
+    }
+
+    log('Looking up vocabulary word:', word);
+
+    // Look up the word
+    const result = await vocabularyLookup.lookup(word, context);
+
+    log('Lookup result:', result.word);
+
+    // Send result back to content script
+    if (sender.tab) {
+      chrome.tabs.sendMessage(sender.tab.id, {
+        type: 'VOCABULARY_LOOKUP_RESULT',
+        result: result,
+        error: null
+      });
+    }
+
+    sendResponse({ success: true, result });
+  } catch (error) {
+    logError('Vocabulary lookup failed:', error);
+
+    // Send error back to content script
+    if (sender.tab) {
+      chrome.tabs.sendMessage(sender.tab.id, {
+        type: 'VOCABULARY_LOOKUP_RESULT',
+        result: null,
+        error: error.message
+      });
+    }
+
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Handle adding word to vocabulary
+ */
+async function handleVocabularyAdd(request, sendResponse) {
+  try {
+    const { word, context } = request;
+
+    if (!word) {
+      throw new Error('No word data provided');
+    }
+
+    log('Adding word to vocabulary:', word.word);
+
+    // Check for duplicate
+    const vocabulary = await storageManager.getVocabulary();
+    const existing = vocabulary.find(w =>
+      w.word.toLowerCase() === word.word.toLowerCase()
+    );
+
+    if (existing) {
+      throw new Error('This word already exists in your vocabulary');
+    }
+
+    // Create vocabulary entry
+    const entry = {
+      id: `vocab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      word: word.word,
+      phonetic: word.phonetic,
+      partOfSpeech: word.partOfSpeech,
+      definitionEN: word.definitionEN,
+      definitionCN: word.definitionCN,
+      examples: word.examples || [],
+      synonyms: word.synonyms || [],
+      antonyms: word.antonyms || [],
+      userContext: context || '',
+      category: 'General',
+      tags: [],
+      notes: '',
+      isFavorite: false,
+      masteryLevel: 0,
+      easeFactor: 2.5,
+      interval: 0,
+      reviewCount: 0,
+      correctCount: 0,
+      lastReviewedAt: null,
+      nextReviewAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending'
+    };
+
+    await storageManager.addVocabularyWord(entry);
+
+    log('Word added successfully:', entry.word);
+    sendResponse({ success: true, entry });
+  } catch (error) {
+    logError('Add vocabulary word failed:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+/**
+ * Handle getting words due for review
+ */
+async function handleVocabularyGetDue(sendResponse) {
+  try {
+    const dueWords = await storageManager.getWordsDueForReview();
+    sendResponse({ success: true, words: dueWords, count: dueWords.length });
+  } catch (error) {
+    logError('Get due words failed:', error);
+    sendResponse({ success: false, error: error.message });
   }
 }
 

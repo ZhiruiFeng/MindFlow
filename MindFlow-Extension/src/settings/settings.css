@@ -469,6 +469,30 @@ body {
   opacity: 0.6;
 }
 
+/* Sync Status */
+.sync-status {
+  background-color: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.sync-status-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-xs) 0;
+  font-size: 13px;
+}
+
+.sync-label {
+  color: var(--text-secondary);
+}
+
+.sync-value {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .content {

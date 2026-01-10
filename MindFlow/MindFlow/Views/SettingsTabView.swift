@@ -31,6 +31,7 @@ struct SettingsTabView: View {
                 accountSection
                 languageSection
                 backendSyncSection
+                vocabularySection
                 apiConfigurationSection
                 llmConfigurationSection
                 permissionsSection
@@ -134,6 +135,74 @@ struct SettingsTabView: View {
                 .pickerStyle(.segmented)
 
                 Text("settings.language_description".localized)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+        }
+    }
+
+    private var vocabularySection: some View {
+        GroupBox(label: Label("Vocabulary", systemImage: "book.fill")) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Daily review goal
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Daily Review Goal")
+                        .font(.headline)
+
+                    HStack {
+                        Slider(value: Binding(
+                            get: { Double(settings.vocabularyDailyReviewGoal) },
+                            set: { settings.vocabularyDailyReviewGoal = Int($0) }
+                        ), in: 5...50, step: 5)
+
+                        Text("\(settings.vocabularyDailyReviewGoal)")
+                            .font(.system(.body, design: .monospaced))
+                            .frame(width: 30, alignment: .trailing)
+                    }
+
+                    Text("Number of words to review each day")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+
+                // Review reminders
+                Toggle("Enable Review Reminders", isOn: $settings.vocabularyReviewRemindersEnabled)
+
+                if settings.vocabularyReviewRemindersEnabled {
+                    HStack {
+                        Text("Reminder Time")
+                        Spacer()
+                        Picker("", selection: $settings.vocabularyReminderHour) {
+                            ForEach(6..<23, id: \.self) { hour in
+                                Text("\(hour):00").tag(hour)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 100)
+                    }
+                }
+
+                Divider()
+
+                // Sync settings
+                Toggle("Sync Vocabulary to Backend", isOn: $settings.vocabularySyncEnabled)
+                    .disabled(!authService.isAuthenticated)
+
+                if !authService.isAuthenticated {
+                    Text("Sign in to enable vocabulary sync")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                }
+
+                Divider()
+
+                // Other settings
+                Toggle("Auto-play Pronunciation", isOn: $settings.vocabularyAutoPlayPronunciation)
+
+                Text("Automatically play word pronunciation when viewing details")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

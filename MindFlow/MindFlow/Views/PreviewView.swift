@@ -39,16 +39,20 @@ struct PreviewView: View {
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Original text
+                    // Original text (with vocabulary lookup support)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("preview.original".localized)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        TextEditor(text: .constant(result?.originalText ?? ""))
+                        HStack {
+                            Text("preview.original".localized)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("Right-click word to add to vocabulary")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+
+                        TranscriptionTextView(text: result?.originalText ?? "")
                             .frame(height: 80)
-                            .font(.body)
-                            .disabled(true)
                             .background(Color.secondary.opacity(0.1))
                             .cornerRadius(8)
                     }
