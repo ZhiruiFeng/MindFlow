@@ -24,6 +24,9 @@ struct TranscriptionResult: Identifiable, Codable {
     let outputStyle: String?
     let teacherExplanation: String?
 
+    /// Vocabulary words suggested for learning from this transcription
+    var vocabularySuggestions: [VocabularySuggestion]?
+
     // Server sync
     var serverRecordId: UUID?
     var isSynced: Bool = false
@@ -40,6 +43,7 @@ struct TranscriptionResult: Identifiable, Codable {
          optimizationLevel: String? = nil,
          outputStyle: String? = nil,
          teacherExplanation: String? = nil,
+         vocabularySuggestions: [VocabularySuggestion]? = nil,
          serverRecordId: UUID? = nil,
          isSynced: Bool = false) {
         self.id = id
@@ -54,6 +58,7 @@ struct TranscriptionResult: Identifiable, Codable {
         self.optimizationLevel = optimizationLevel
         self.outputStyle = outputStyle
         self.teacherExplanation = teacherExplanation
+        self.vocabularySuggestions = vocabularySuggestions
         self.serverRecordId = serverRecordId
         self.isSynced = isSynced
     }

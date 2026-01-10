@@ -134,13 +134,14 @@ export class LLMService {
       basePrompt += '\n\nMaintain a casual, conversational tone that sounds natural.';
     }
 
-    // Add teacher notes instructions if needed
+    // Add teacher notes and vocabulary suggestions instructions if needed
     if (includeTeacherNotes) {
       basePrompt += `
 
 Your task:
 1. First, optimize the user's text following the guidelines above
 2. Then, provide specific teaching guidance like a teacher giving improvement feedback
+3. Finally, suggest vocabulary words worth learning from this transcription
 
 Output format (use exactly this structure):
 REFINED_TEXT:
@@ -154,20 +155,36 @@ Key improvements (max 3 points):
 • [Specific point with before/after example or vocabulary suggestion]
 • [Specific point with before/after example or vocabulary suggestion]
 
+VOCABULARY_SUGGESTIONS:
+[JSON array of 0-3 vocabulary suggestions]
+
 Teaching guidelines for TEACHER_NOTE:
 - Give specific, actionable feedback with examples (e.g., "Instead of 'very good', use 'excellent' or 'outstanding' for stronger impact")
 - Show which vocabulary or sentence structure would better express the intended meaning
 - Limit to maximum 3 most important improvement points
 - Provide a score out of 10 for the original text
 - DO NOT give generic comments like "removed filler words" or "improved expression"
-- Focus on WHY a specific word or structure is better for the meaning`;
+- Focus on WHY a specific word or structure is better for the meaning
+
+Vocabulary suggestion guidelines:
+- Select 0-3 words from the REFINED text that would benefit English language learners
+- Prioritize: uncommon but useful words, nuanced vocabulary, commonly confused words, eloquent alternatives
+- Exclude: top 1000 most common English words, proper nouns (names/places), slang
+- For each word, provide a JSON object with these fields:
+  - word: the vocabulary word
+  - partOfSpeech: noun/verb/adjective/adverb/phrase
+  - definition: brief definition (1-2 sentences)
+  - reason: why this word is worth learning (max 50 words)
+  - sourceSentence: the exact sentence from the refined text where this word appears
+- Output as a valid JSON array, or empty array [] if no good vocabulary candidates
+- Example: [{"word": "eloquent", "partOfSpeech": "adjective", "definition": "fluent or persuasive in speaking or writing", "reason": "More expressive than 'well-spoken'", "sourceSentence": "She gave an eloquent presentation."}]`;
     }
 
     return basePrompt;
   }
 
   /**
-   * Parse optimization result with teacher notes
+   * Parse optimization result with teacher notes and vocabulary suggestions
    * @private
    */
   parseOptimizationResult(response) {
@@ -176,13 +193,15 @@ Teaching guidelines for TEACHER_NOTE:
     // Look for the markers
     const refinedMatch = trimmed.indexOf('REFINED_TEXT:');
     const teacherMatch = trimmed.indexOf('TEACHER_NOTE:');
+    const vocabMatch = trimmed.indexOf('VOCABULARY_SUGGESTIONS:');
 
     if (refinedMatch === -1 || teacherMatch === -1) {
       // If markers not found, return whole response as refined text
       log('Could not find markers in response, using fallback parsing');
       return {
         refinedText: trimmed,
-        teacherNotes: 'No explanation provided'
+        teacherNotes: 'No explanation provided',
+        vocabularySuggestions: []
       };
     }
 
@@ -190,14 +209,78 @@ Teaching guidelines for TEACHER_NOTE:
     const refinedStart = refinedMatch + 'REFINED_TEXT:'.length;
     const refinedText = trimmed.substring(refinedStart, teacherMatch).trim();
 
-    // Extract teacher note (after TEACHER_NOTE:)
+    // Extract teacher note (between TEACHER_NOTE: and VOCABULARY_SUGGESTIONS: if present)
     const teacherStart = teacherMatch + 'TEACHER_NOTE:'.length;
-    const teacherNotes = trimmed.substring(teacherStart).trim();
+    const teacherEnd = vocabMatch !== -1 ? vocabMatch : trimmed.length;
+    const teacherNotes = trimmed.substring(teacherStart, teacherEnd).trim();
+
+    // Parse vocabulary suggestions
+    const vocabularySuggestions = this.parseVocabularySuggestions(trimmed, vocabMatch);
 
     return {
       refinedText,
-      teacherNotes
+      teacherNotes,
+      vocabularySuggestions
     };
+  }
+
+  /**
+   * Parse vocabulary suggestions JSON from the LLM response
+   * @private
+   * @param {string} response - The full LLM response
+   * @param {number} vocabMatch - Index of VOCABULARY_SUGGESTIONS marker, or -1 if not found
+   * @returns {Array} Array of vocabulary suggestions (empty if parsing fails)
+   */
+  parseVocabularySuggestions(response, vocabMatch) {
+    if (vocabMatch === -1) {
+      log('No VOCABULARY_SUGGESTIONS marker found in response');
+      return [];
+    }
+
+    try {
+      // Extract everything after VOCABULARY_SUGGESTIONS:
+      const vocabStart = vocabMatch + 'VOCABULARY_SUGGESTIONS:'.length;
+      let vocabJSON = response.substring(vocabStart).trim();
+
+      // Clean up the response - remove markdown code blocks if present
+      if (vocabJSON.startsWith('```json')) {
+        vocabJSON = vocabJSON.substring(7);
+      } else if (vocabJSON.startsWith('```')) {
+        vocabJSON = vocabJSON.substring(3);
+      }
+      if (vocabJSON.endsWith('```')) {
+        vocabJSON = vocabJSON.substring(0, vocabJSON.length - 3);
+      }
+      vocabJSON = vocabJSON.trim();
+
+      // Find the JSON array boundaries
+      const arrayStart = vocabJSON.indexOf('[');
+      const arrayEnd = vocabJSON.lastIndexOf(']');
+
+      if (arrayStart === -1 || arrayEnd === -1) {
+        log('Could not find JSON array in vocabulary suggestions');
+        return [];
+      }
+
+      const jsonString = vocabJSON.substring(arrayStart, arrayEnd + 1);
+      const suggestions = JSON.parse(jsonString);
+
+      // Validate and filter suggestions
+      const validSuggestions = suggestions.filter(s =>
+        s.word && s.partOfSpeech && s.definition && s.reason && s.sourceSentence
+      ).map(s => ({
+        ...s,
+        isAlreadySaved: false,
+        isAdding: false,
+        wasJustAdded: false
+      }));
+
+      log(`Parsed ${validSuggestions.length} vocabulary suggestions`);
+      return validSuggestions;
+    } catch (error) {
+      log('Failed to parse vocabulary suggestions:', error.message);
+      return [];
+    }
   }
 
   /**
@@ -218,7 +301,7 @@ Teaching guidelines for TEACHER_NOTE:
         }
       ],
       temperature: 0.3,
-      max_tokens: 1000
+      max_tokens: 2000  // Increased for vocabulary suggestions
     };
 
     const response = await fetch(API_ENDPOINTS.OPENAI_CHAT, {

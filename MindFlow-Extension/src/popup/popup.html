@@ -101,6 +101,41 @@
           </div>
         </div>
 
+        <!-- Vocabulary Suggestions (conditionally shown) -->
+        <div id="vocab-suggestions-section" class="vocab-section" style="display: none;">
+          <label class="text-label">
+            <span class="vocab-icon">💡</span>
+            Vocabulary Suggestions
+          </label>
+          <div id="vocab-suggestions-list" class="vocab-list">
+            <!-- Vocabulary suggestions will be rendered here by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Vocabulary Detail Modal -->
+        <div id="vocab-detail-modal" class="vocab-modal" style="display: none;">
+          <div class="vocab-modal-content">
+            <button id="vocab-modal-close" class="vocab-modal-close">&times;</button>
+            <div id="vocab-detail-word" class="vocab-detail-word"></div>
+            <div id="vocab-detail-pos" class="vocab-detail-pos"></div>
+            <div class="vocab-detail-section">
+              <label>Definition</label>
+              <div id="vocab-detail-definition"></div>
+            </div>
+            <div class="vocab-detail-section">
+              <label>Why learn this word?</label>
+              <div id="vocab-detail-reason"></div>
+            </div>
+            <div class="vocab-detail-section">
+              <label>Used in context</label>
+              <div id="vocab-detail-source" class="vocab-detail-source"></div>
+            </div>
+            <button id="vocab-detail-add-btn" class="btn btn-primary vocab-detail-btn">
+              Add to Vocabulary
+            </button>
+          </div>
+        </div>
+
         <!-- Optimization Level Indicator -->
         <div class="optimization-info">
           <span id="optimization-level" class="optimization-level">Medium</span>
