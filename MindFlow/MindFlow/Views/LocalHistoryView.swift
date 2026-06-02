@@ -10,6 +10,7 @@ import SwiftUI
 struct LocalHistoryView: View {
     @StateObject private var viewModel = LocalHistoryViewModel()
     @EnvironmentObject var authService: SupabaseAuthService
+    @State private var selectedDetail: InteractionDetail?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +24,9 @@ struct LocalHistoryView: View {
         }
         .onAppear {
             viewModel.loadInteractions()
+        }
+        .sheet(item: $selectedDetail) { detail in
+            InteractionDetailView(detail: detail)
         }
     }
 
@@ -89,6 +93,9 @@ struct LocalHistoryView: View {
                             Task {
                                 await viewModel.syncInteraction(interaction)
                             }
+                        },
+                        onOpenDetail: {
+                            selectedDetail = InteractionDetail(local: interaction)
                         }
                     )
                     .padding(.horizontal)
@@ -121,8 +128,13 @@ struct LocalInteractionRowView: View {
     let interaction: LocalInteraction
     let isAuthenticated: Bool
     let onSync: () -> Void
+    let onOpenDetail: () -> Void
 
     @State private var isExpanded = false
+
+    private var hasTeacherNote: Bool {
+        !(interaction.teacherExplanation ?? "").isEmpty
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -146,13 +158,34 @@ struct LocalInteractionRowView: View {
             if let refined = interaction.refinedText {
                 Divider()
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Refined:")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    HStack(spacing: 4) {
+                        Text("Refined:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        if let model = interaction.optimizationModel {
+                            Text("(\(LLMModel(rawValue: model)?.displayName ?? model))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     Text(refined)
                         .font(.body)
                         .foregroundColor(.primary)
                         .lineLimit(isExpanded ? nil : 3)
+                }
+            }
+
+            // Teacher's Note indicator (content is shown in the detail page)
+            if hasTeacherNote {
+                Divider()
+                HStack(spacing: 6) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.caption2)
+                        .foregroundColor(.yellow)
+                    Text(teacherNotePreview)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(isExpanded ? nil : 1)
                 }
             }
 
@@ -166,7 +199,24 @@ struct LocalInteractionRowView: View {
                     .font(.caption2)
                     .foregroundColor(.blue)
 
+                if let level = interaction.optimizationLevel {
+                    Label(level.capitalized, systemImage: "slider.horizontal.3")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+
                 Spacer()
+
+                // Open the comprehensive detail page
+                Button(action: onOpenDetail) {
+                    HStack(spacing: 4) {
+                        Text("Details")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
 
                 // Expand/collapse button
                 Button(action: {
@@ -185,6 +235,20 @@ struct LocalInteractionRowView: View {
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(10)
         .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .contentShape(Rectangle())
+        .onTapGesture { onOpenDetail() }
+    }
+
+    /// First non-empty, non-score line of the teacher's note for an inline teaser.
+    private var teacherNotePreview: String {
+        let note = interaction.teacherExplanation ?? ""
+        for line in note.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty && !trimmed.lowercased().contains("score:") {
+                return trimmed
+            }
+        }
+        return "Teacher's Note"
     }
 
     @ViewBuilder

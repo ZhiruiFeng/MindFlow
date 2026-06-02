@@ -213,26 +213,28 @@ class Settings: ObservableObject {
         }
         self.autoSyncToBackend = UserDefaults.standard.bool(forKey: "auto_sync_to_backend")
 
-        let savedThreshold = UserDefaults.standard.double(forKey: "auto_sync_threshold")
-        self.autoSyncThreshold = savedThreshold == 0 ? 30.0 : savedThreshold
-        if savedThreshold == 0 {
+        // Use object(forKey:) == nil to detect "unset" so legitimate values
+        // (e.g. a threshold/goal of 0, or a midnight reminder) aren't overridden.
+        let thresholdUnset = UserDefaults.standard.object(forKey: "auto_sync_threshold") == nil
+        self.autoSyncThreshold = thresholdUnset ? 30.0 : UserDefaults.standard.double(forKey: "auto_sync_threshold")
+        if thresholdUnset {
             UserDefaults.standard.set(30.0, forKey: "auto_sync_threshold")
         }
 
         // Load vocabulary settings - initialize ALL properties first, then apply defaults
-        let savedNewWordsGoal = UserDefaults.standard.integer(forKey: "vocabulary_daily_new_words_goal")
-        self.vocabularyDailyNewWordsGoal = savedNewWordsGoal == 0 ? 5 : savedNewWordsGoal
+        let newWordsGoalUnset = UserDefaults.standard.object(forKey: "vocabulary_daily_new_words_goal") == nil
+        self.vocabularyDailyNewWordsGoal = newWordsGoalUnset ? 5 : UserDefaults.standard.integer(forKey: "vocabulary_daily_new_words_goal")
 
-        let savedReviewGoal = UserDefaults.standard.integer(forKey: "vocabulary_daily_review_goal")
-        self.vocabularyDailyReviewGoal = savedReviewGoal == 0 ? 15 : savedReviewGoal
+        let reviewGoalUnset = UserDefaults.standard.object(forKey: "vocabulary_daily_review_goal") == nil
+        self.vocabularyDailyReviewGoal = reviewGoalUnset ? 15 : UserDefaults.standard.integer(forKey: "vocabulary_daily_review_goal")
 
         if UserDefaults.standard.object(forKey: "vocabulary_enable_reminders") == nil {
             UserDefaults.standard.set(true, forKey: "vocabulary_enable_reminders")
         }
         self.vocabularyEnableReminders = UserDefaults.standard.bool(forKey: "vocabulary_enable_reminders")
 
-        let savedReminderHour = UserDefaults.standard.integer(forKey: "vocabulary_reminder_hour")
-        self.vocabularyReminderHour = savedReminderHour == 0 ? 9 : savedReminderHour
+        let reminderHourUnset = UserDefaults.standard.object(forKey: "vocabulary_reminder_hour") == nil
+        self.vocabularyReminderHour = reminderHourUnset ? 9 : UserDefaults.standard.integer(forKey: "vocabulary_reminder_hour")
 
         self.vocabularyDefaultCategory = UserDefaults.standard.string(forKey: "vocabulary_default_category") ?? ""
         self.vocabularyAutoPlayPronunciation = UserDefaults.standard.bool(forKey: "vocabulary_auto_play_pronunciation")
@@ -245,13 +247,13 @@ class Settings: ObservableObject {
         self.vocabularyReviewRemindersEnabled = UserDefaults.standard.bool(forKey: "vocabulary_review_reminders_enabled")
 
         // Save default values if not already saved
-        if savedNewWordsGoal == 0 {
+        if newWordsGoalUnset {
             UserDefaults.standard.set(5, forKey: "vocabulary_daily_new_words_goal")
         }
-        if savedReviewGoal == 0 {
+        if reviewGoalUnset {
             UserDefaults.standard.set(15, forKey: "vocabulary_daily_review_goal")
         }
-        if savedReminderHour == 0 {
+        if reminderHourUnset {
             UserDefaults.standard.set(9, forKey: "vocabulary_reminder_hour")
         }
 
@@ -290,16 +292,24 @@ enum STTProvider: String, CaseIterable {
 
 /// LLM model
 enum LLMModel: String, CaseIterable {
+    case gpt5Nano = "gpt-5-nano"
     case gpt4oMini = "gpt-4o-mini"
     case gpt4o = "gpt-4o"
     case gpt4 = "gpt-4"
-    
+
     var displayName: String {
         switch self {
+        case .gpt5Nano: return "enum.llm.gpt5_nano".localized
         case .gpt4oMini: return "enum.llm.gpt4o_mini".localized
         case .gpt4o: return "enum.llm.gpt4o".localized
         case .gpt4: return "enum.llm.gpt4".localized
         }
+    }
+
+    /// GPT-5 family models use `max_completion_tokens` instead of `max_tokens`
+    /// and only support the default temperature (1).
+    var isGPT5Family: Bool {
+        rawValue.hasPrefix("gpt-5")
     }
 }
 

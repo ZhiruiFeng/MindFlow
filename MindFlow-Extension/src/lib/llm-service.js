@@ -299,10 +299,17 @@ Vocabulary suggestion guidelines:
           role: 'user',
           content: userMessage
         }
-      ],
-      temperature: 0.3,
-      max_tokens: 2000  // Increased for vocabulary suggestions
+      ]
     };
+
+    // GPT-5 family models use `max_completion_tokens` and only support the
+    // default temperature (1), so omit the custom temperature for them.
+    if (this.model.startsWith('gpt-5')) {
+      requestBody.max_completion_tokens = 2000;
+    } else {
+      requestBody.temperature = 0.3;
+      requestBody.max_tokens = 2000;  // Increased for vocabulary suggestions
+    }
 
     const response = await fetch(API_ENDPOINTS.OPENAI_CHAT, {
       method: 'POST',

@@ -219,9 +219,9 @@ class VocabularyViewModel: ObservableObject {
     /// - Parameter entry: The word to toggle
     func toggleFavorite(_ entry: VocabularyEntry) {
         storage.toggleFavorite(entry: entry)
-        // Update local state
+        // Reassign the element so SwiftUI rows observe the change and refresh.
         if let index = words.firstIndex(where: { $0.id == entry.id }) {
-            objectWillChange.send()
+            words[index] = entry
         }
     }
 

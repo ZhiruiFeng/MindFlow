@@ -28,12 +28,17 @@ class LLMService {
 
     /// Optimize text and generate teacher explanation in one call
     func optimizeTextWithExplanation(_ text: String, level: OptimizationLevel? = nil) async throws -> OptimizationResult {
-        guard !settings.openAIKey.isEmpty else {
+        // Snapshot Settings (an ObservableObject) on the main actor before any
+        // background work to avoid a data race.
+        let (apiKey, defaultLevel, outputStyle) = await MainActor.run {
+            (settings.openAIKey, settings.optimizationLevel, settings.outputStyle)
+        }
+
+        guard !apiKey.isEmpty else {
             throw LLMError.missingAPIKey("OpenAI API Key not configured")
         }
 
-        let optimizationLevel = level ?? settings.optimizationLevel
-        let outputStyle = settings.outputStyle
+        let optimizationLevel = level ?? defaultLevel
 
         // Build combined prompt that asks for refined text, explanation, and vocabulary suggestions
         let systemPrompt = """
@@ -102,12 +107,16 @@ class LLMService {
 
     /// Optimize text only (backward compatibility)
     func optimizeText(_ text: String, level: OptimizationLevel? = nil) async throws -> String {
-        guard !settings.openAIKey.isEmpty else {
+        // Snapshot Settings on the main actor before background work.
+        let (apiKey, defaultLevel, outputStyle) = await MainActor.run {
+            (settings.openAIKey, settings.optimizationLevel, settings.outputStyle)
+        }
+
+        guard !apiKey.isEmpty else {
             throw LLMError.missingAPIKey("OpenAI API Key not configured")
         }
 
-        let optimizationLevel = level ?? settings.optimizationLevel
-        let outputStyle = settings.outputStyle
+        let optimizationLevel = level ?? defaultLevel
 
         return try await optimizeWithOpenAI(
             text: text,
@@ -162,18 +171,24 @@ class LLMService {
     ) async throws -> String {
         let endpoint = "https://api.openai.com/v1/chat/completions"
 
+        // Snapshot Settings on the main actor before the network call.
+        let (apiKey, model) = await MainActor.run {
+            (settings.openAIKey, settings.llmModel)
+        }
+
         // Create request
         guard let url = URL(string: endpoint) else {
             throw LLMError.invalidResponse
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 60.0
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Build request body
-        let requestBody: [String: Any] = [
-            "model": settings.llmModel.rawValue,
+        var requestBody: [String: Any] = [
+            "model": model.rawValue,
             "messages": [
                 [
                     "role": "system",
@@ -183,10 +198,23 @@ class LLMService {
                     "role": "user",
                     "content": userPrompt
                 ]
-            ],
-            "temperature": temperature,
-            "max_tokens": maxTokens
+            ]
         ]
+
+        // GPT-5 family models use `max_completion_tokens` and only support the
+        // default temperature, so omit the custom temperature for them.
+        if model.isGPT5Family {
+            // Reasoning models share the completion-token budget between hidden
+            // reasoning tokens and the visible answer. For this lightweight
+            // rewriting/teaching task we don't want deep reasoning eating the
+            // budget (it truncates the structured output and hurts quality), so
+            // request minimal reasoning effort and give a generous token budget.
+            requestBody["reasoning_effort"] = "minimal"
+            requestBody["max_completion_tokens"] = max(maxTokens, 4000)
+        } else {
+            requestBody["temperature"] = temperature
+            requestBody["max_tokens"] = maxTokens
+        }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 

@@ -54,6 +54,9 @@ struct VocabularyTabView: View {
                 await vocabularyViewModel.loadWords()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .startVocabularyReview)) { _ in
+            startReview()
+        }
     }
 
     // MARK: - Sidebar
@@ -241,6 +244,7 @@ struct VocabularyTabView: View {
             }
             .buttonStyle(.bordered)
             .keyboardShortcut("n", modifiers: .command)
+            .accessibilityIdentifier("vocab.addWord")
 
             // Sync button
             if syncService.isConfigured {

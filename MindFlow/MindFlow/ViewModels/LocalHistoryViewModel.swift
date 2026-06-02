@@ -28,15 +28,15 @@ class LocalHistoryViewModel: ObservableObject {
 
     func syncInteraction(_ interaction: LocalInteraction) async {
         isSyncing = true
+        defer { isSyncing = false }
         await storageService.manualSyncToBackend(interaction: interaction)
         loadInteractions()
-        isSyncing = false
     }
 
     func syncAllPending() async {
         isSyncing = true
+        defer { isSyncing = false }
         await storageService.syncAllPending()
         loadInteractions()
-        isSyncing = false
     }
 }

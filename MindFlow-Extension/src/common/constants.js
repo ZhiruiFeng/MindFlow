@@ -74,6 +74,7 @@ export const STT_PROVIDERS = {
 
 // LLM Models
 export const LLM_MODELS = {
+  GPT_5_NANO: 'gpt-5-nano',
   GPT_4O_MINI: 'gpt-4o-mini',
   GPT_4O: 'gpt-4o',
   GPT_4: 'gpt-4'

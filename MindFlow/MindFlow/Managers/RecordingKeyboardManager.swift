@@ -18,6 +18,11 @@ class RecordingKeyboardManager {
     private var isRecording = false
     private var recordingCallback: ((Bool) -> Void)?
 
+    /// Whether the process is currently trusted for global event monitoring.
+    /// When false, the global (system-wide) fn+shift shortcut will silently not
+    /// fire while other apps are focused. Exposed so callers can surface this.
+    private(set) var isGlobalMonitoringTrusted = false
+
     private init() {}
 
     // MARK: - Setup
@@ -41,7 +46,16 @@ class RecordingKeyboardManager {
             self?.handleFlagsChanged(event: event)
         }
 
-        print("✅ RecordingKeyboardManager started monitoring fn+shift (local + global)")
+        // Verify the process is trusted for input monitoring / accessibility.
+        // The global monitor is installed regardless, but it will silently
+        // receive no events when untrusted — surface a clear warning so a
+        // broken global shortcut is detectable.
+        isGlobalMonitoringTrusted = AXIsProcessTrusted()
+        if !isGlobalMonitoringTrusted {
+            Logger.warning("RecordingKeyboardManager: process is NOT trusted for input monitoring/accessibility — the global (system-wide) fn+shift shortcut will not fire while other apps are focused. Grant Accessibility permission in System Settings.", category: .general)
+        }
+
+        Logger.info("RecordingKeyboardManager started monitoring fn+shift (local + global, globalTrusted=\(isGlobalMonitoringTrusted))", category: .general)
     }
 
     /// Stop monitoring keyboard events
@@ -62,7 +76,7 @@ class RecordingKeyboardManager {
             recordingCallback?(false)
         }
 
-        print("✅ RecordingKeyboardManager stopped monitoring")
+        Logger.info("RecordingKeyboardManager stopped monitoring", category: .general)
     }
 
     // MARK: - Event Handling
@@ -78,12 +92,12 @@ class RecordingKeyboardManager {
         if isFnShiftPressed && !isRecording {
             // Start recording
             isRecording = true
-            print("🎤 fn+shift pressed - Starting recording")
+            Logger.debug("fn+shift pressed - Starting recording", category: .recording)
             recordingCallback?(true)
         } else if !isFnShiftPressed && isRecording {
             // Stop recording (either key released)
             isRecording = false
-            print("⏹ fn+shift released - Stopping recording")
+            Logger.debug("fn+shift released - Stopping recording", category: .recording)
             recordingCallback?(false)
         }
     }

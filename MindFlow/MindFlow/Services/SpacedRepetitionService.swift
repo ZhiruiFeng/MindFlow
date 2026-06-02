@@ -94,7 +94,6 @@ class SpacedRepetitionService {
             // Update ease factor based on quality
             // Formula: EF' = EF + (0.1 - (2 - q) * (0.08 + (2 - q) * 0.02))
             // Simplified for our 3-grade scale
-            let qualityAdjustment = Double(quality.rawValue - 2)
             ef = ef + (0.1 - (2.0 - Double(quality.rawValue)) * 0.08)
         } else {
             // Incorrect response: reset interval
@@ -104,8 +103,9 @@ class SpacedRepetitionService {
             ef = ef - 0.2
         }
 
-        // Ensure ease factor doesn't go below minimum
-        ef = max(1.3, ef)
+        // Clamp ease factor to a sane range so it can't drift below the SM-2
+        // minimum or grow unbounded over many correct reviews.
+        ef = min(max(1.3, ef), 3.0)
 
         // Calculate mastery level based on interval
         let masteryLevel = calculateMasteryLevel(interval: interval)

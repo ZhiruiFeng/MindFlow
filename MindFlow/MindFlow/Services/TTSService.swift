@@ -106,6 +106,7 @@ class TTSService: NSObject, ObservableObject {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 120
 
         let trimmedKey = settings.elevenLabsKey.trimmingCharacters(in: .whitespacesAndNewlines)
         request.setValue(trimmedKey, forHTTPHeaderField: "xi-api-key")

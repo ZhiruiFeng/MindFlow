@@ -47,4 +47,25 @@ public class LocalInteraction: NSManagedObject {
             syncStatus = newValue.rawValue
         }
     }
+
+    /// Typed access to the persisted vocabulary suggestions.
+    /// Backed by the `vocabularySuggestions` JSON string attribute.
+    var vocabularySuggestionsArray: [VocabularySuggestion] {
+        get {
+            guard let json = vocabularySuggestions,
+                  let data = json.data(using: .utf8) else {
+                return []
+            }
+            return (try? JSONDecoder().decode([VocabularySuggestion].self, from: data)) ?? []
+        }
+        set {
+            guard !newValue.isEmpty,
+                  let data = try? JSONEncoder().encode(newValue),
+                  let json = String(data: data, encoding: .utf8) else {
+                vocabularySuggestions = nil
+                return
+            }
+            vocabularySuggestions = json
+        }
+    }
 }

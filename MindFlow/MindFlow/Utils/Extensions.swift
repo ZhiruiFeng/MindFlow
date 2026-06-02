@@ -19,6 +19,18 @@ extension Notification.Name {
 
     /// Notification to switch to recording tab
     static let switchToRecordingTab = Notification.Name("switchToRecordingTab")
+
+    /// Notification to bring the main workspace window to the front (used by the menu bar item)
+    static let showMainWindow = Notification.Name("showMainWindow")
+
+    /// Notification to switch to the vocabulary tab
+    static let switchToVocabularyTab = Notification.Name("switchToVocabularyTab")
+
+    /// Notification to switch to the settings tab (in the main window)
+    static let switchToSettingsTab = Notification.Name("switchToSettingsTab")
+
+    /// Notification to start a vocabulary review session (deep link from the menu bar)
+    static let startVocabularyReview = Notification.Name("startVocabularyReview")
 }
 
 // MARK: - Color Extensions
@@ -81,7 +93,7 @@ extension Date {
     var relativeTimeString: String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale.current
         return formatter.localizedString(for: self, relativeTo: Date())
     }
     
@@ -89,7 +101,7 @@ extension Date {
     var fullDateTimeString: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.locale = Locale.current
         return formatter.string(from: self)
     }
 }

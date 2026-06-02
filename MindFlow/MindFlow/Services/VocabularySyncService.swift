@@ -16,14 +16,58 @@ class VocabularySyncService {
     private let coreData = CoreDataManager.shared
     private let settings = Settings.shared
 
+    // Supabase connection (set via configure(url:key:))
+    private var supabaseURL: String?
+    private var supabaseKey: String?
+
     // Sync state
     private(set) var isSyncing = false
     private(set) var lastSyncDate: Date?
     private(set) var syncError: Error?
 
-    // Supabase configuration
-    private var supabaseURL: String?
-    private var supabaseKey: String?
+    // Guards mutation/inspection of `isSyncing` so two concurrent syncs can't
+    // both pass the guard (TOCTOU). The check-and-set is performed atomically.
+    private let syncLock = NSLock()
+
+    // Cached ISO8601 formatters. JSONSerialization/Postgres timestamps may or may
+    // not include fractional seconds, so we keep one of each and try both on parse.
+    private static let iso8601WithFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601Plain: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    /// Parse an ISO8601 string, tolerating timestamps with or without fractional seconds.
+    private static func parseISODate(_ string: String) -> Date? {
+        return iso8601WithFractional.date(from: string) ?? iso8601Plain.date(from: string)
+    }
+
+    /// Serialize a date to ISO8601 with fractional seconds.
+    private static func formatISODate(_ date: Date) -> String {
+        return iso8601WithFractional.string(from: date)
+    }
+
+    /// Atomically attempt to begin a sync. Returns false if one is already running.
+    private func beginSyncIfPossible() -> Bool {
+        syncLock.lock()
+        defer { syncLock.unlock() }
+        guard !isSyncing else { return false }
+        isSyncing = true
+        return true
+    }
+
+    /// Atomically clear the syncing flag.
+    private func endSync() {
+        syncLock.lock()
+        isSyncing = false
+        syncLock.unlock()
+    }
 
     private init() {
         print("🔧 [VocabularySyncService] Service initialized")
@@ -67,17 +111,15 @@ class VocabularySyncService {
             throw SyncError.notConfigured
         }
 
-        guard !isSyncing else {
+        guard beginSyncIfPossible() else {
             throw SyncError.alreadySyncing
         }
-
-        isSyncing = true
-        defer { isSyncing = false }
+        defer { endSync() }
 
         print("🔄 [VocabularySyncService] Starting sync to backend...")
 
-        // Get pending entries
-        let pendingEntries = fetchPendingEntries()
+        // Get pending entries (Core Data access must run on the main actor)
+        let pendingEntries = await MainActor.run { fetchPendingEntries() }
         print("📤 [VocabularySyncService] Found \(pendingEntries.count) entries to sync")
 
         guard !pendingEntries.isEmpty else {
@@ -112,12 +154,10 @@ class VocabularySyncService {
             throw SyncError.notConfigured
         }
 
-        guard !isSyncing else {
+        guard beginSyncIfPossible() else {
             throw SyncError.alreadySyncing
         }
-
-        isSyncing = true
-        defer { isSyncing = false }
+        defer { endSync() }
 
         print("🔄 [VocabularySyncService] Starting sync from backend...")
 
@@ -176,12 +216,21 @@ class VocabularySyncService {
 
         let endpoint = "\(url)/rest/v1/vocabulary"
 
-        // Prepare entry data
-        let entryData = createSyncPayload(from: entry)
+        guard let requestURL = URL(string: endpoint) else {
+            throw SyncError.notConfigured
+        }
+
+        // Prepare entry data and read managed-object state on the main actor
+        let (entryData, httpMethod, word) = await MainActor.run {
+            (createSyncPayload(from: entry),
+             entry.backendId == nil ? "POST" : "PATCH",
+             entry.word)
+        }
 
         // Create request
-        var request = URLRequest(url: URL(string: endpoint)!)
-        request.httpMethod = entry.backendId == nil ? "POST" : "PATCH"
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = httpMethod
+        request.timeoutInterval = 30.0
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue(key, forHTTPHeaderField: "apikey")
@@ -209,7 +258,7 @@ class VocabularySyncService {
                 coreData.saveContext()
             }
 
-            print("✅ [VocabularySyncService] Synced entry: \(entry.word) -> \(backendId)")
+            print("✅ [VocabularySyncService] Synced entry: \(word) -> \(backendId)")
         }
     }
 
@@ -223,8 +272,8 @@ class VocabularySyncService {
             "correct_count": entry.correctCount,
             "is_favorite": entry.isFavorite,
             "is_archived": entry.isArchived,
-            "created_at": ISO8601DateFormatter().string(from: entry.createdAt),
-            "updated_at": ISO8601DateFormatter().string(from: entry.updatedAt)
+            "created_at": Self.formatISODate(entry.createdAt),
+            "updated_at": Self.formatISODate(entry.updatedAt)
         ]
 
         // Add optional fields
@@ -240,10 +289,10 @@ class VocabularySyncService {
         if let tags = entry.tags { payload["tags"] = tags }
         // notes field removed - not in VocabularyEntry model
         if let lastReviewed = entry.lastReviewedAt {
-            payload["last_reviewed_at"] = ISO8601DateFormatter().string(from: lastReviewed)
+            payload["last_reviewed_at"] = Self.formatISODate(lastReviewed)
         }
         if let nextReview = entry.nextReviewAt {
-            payload["next_review_at"] = ISO8601DateFormatter().string(from: nextReview)
+            payload["next_review_at"] = Self.formatISODate(nextReview)
         }
 
         // Include local ID for reference
@@ -257,15 +306,25 @@ class VocabularySyncService {
             throw SyncError.notConfigured
         }
 
-        // Fetch entries updated after last sync
-        var endpoint = "\(url)/rest/v1/vocabulary?select=*"
+        // Fetch entries updated after last sync. Build the query with URLComponents
+        // so date/values are properly percent-encoded.
+        guard var components = URLComponents(string: "\(url)/rest/v1/vocabulary") else {
+            throw SyncError.notConfigured
+        }
+        var queryItems = [URLQueryItem(name: "select", value: "*")]
         if let lastSync = lastSyncDate {
-            let isoDate = ISO8601DateFormatter().string(from: lastSync)
-            endpoint += "&updated_at=gt.\(isoDate)"
+            let isoDate = Self.formatISODate(lastSync)
+            queryItems.append(URLQueryItem(name: "updated_at", value: "gt.\(isoDate)"))
+        }
+        components.queryItems = queryItems
+
+        guard let requestURL = components.url else {
+            throw SyncError.notConfigured
         }
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        var request = URLRequest(url: requestURL)
         request.httpMethod = "GET"
+        request.timeoutInterval = 30.0
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue(key, forHTTPHeaderField: "apikey")
@@ -290,25 +349,24 @@ class VocabularySyncService {
             return
         }
 
-        // Check if entry exists locally
-        let existingEntry = storage.fetchWord(byText: word)
+        // All Core Data access (fetch, comparison, mutation) runs on the main actor.
+        await MainActor.run {
+            // Check if entry exists locally
+            let existingEntry = storage.fetchWord(byText: word)
 
-        if let existing = existingEntry {
-            // Conflict resolution: compare updated_at timestamps
-            if let remoteUpdatedStr = remoteEntry["updated_at"] as? String,
-               let remoteUpdated = ISO8601DateFormatter().date(from: remoteUpdatedStr) {
+            if let existing = existingEntry {
+                // Conflict resolution: compare updated_at timestamps
+                if let remoteUpdatedStr = remoteEntry["updated_at"] as? String,
+                   let remoteUpdated = Self.parseISODate(remoteUpdatedStr) {
 
-                if remoteUpdated > existing.updatedAt {
-                    // Remote is newer - update local
-                    await MainActor.run {
+                    if remoteUpdated > existing.updatedAt {
+                        // Remote is newer - update local
                         updateLocalEntry(existing, from: remoteEntry)
                     }
+                    // Otherwise keep local version (it will be pushed on next sync)
                 }
-                // Otherwise keep local version (it will be pushed on next sync)
-            }
-        } else {
-            // New entry from remote - create locally
-            await MainActor.run {
+            } else {
+                // New entry from remote - create locally
                 createLocalEntry(from: remoteEntry)
             }
         }
@@ -328,23 +386,25 @@ class VocabularySyncService {
         // notes field removed - not in VocabularyEntry model
 
         // Learning progress
-        if let masteryLevel = remote["mastery_level"] as? Int16 { entry.masteryLevel = masteryLevel }
-        if let easeFactor = remote["ease_factor"] as? Double { entry.easeFactor = easeFactor }
-        if let interval = remote["interval"] as? Int32 { entry.interval = interval }
-        if let reviewCount = remote["review_count"] as? Int32 { entry.reviewCount = reviewCount }
-        if let correctCount = remote["correct_count"] as? Int32 { entry.correctCount = correctCount }
+        // JSONSerialization yields NSNumber for numeric fields, never the exact
+        // CoreData width (Int16/Int32), so cast to NSNumber and convert.
+        if let masteryLevel = remote["mastery_level"] as? NSNumber { entry.masteryLevel = masteryLevel.int16Value }
+        if let easeFactor = remote["ease_factor"] as? NSNumber { entry.easeFactor = easeFactor.doubleValue }
+        if let interval = remote["interval"] as? NSNumber { entry.interval = interval.int32Value }
+        if let reviewCount = remote["review_count"] as? NSNumber { entry.reviewCount = reviewCount.int32Value }
+        if let correctCount = remote["correct_count"] as? NSNumber { entry.correctCount = correctCount.int32Value }
 
         if let isFavorite = remote["is_favorite"] as? Bool { entry.isFavorite = isFavorite }
         if let isArchived = remote["is_archived"] as? Bool { entry.isArchived = isArchived }
 
         if let lastReviewedStr = remote["last_reviewed_at"] as? String {
-            entry.lastReviewedAt = ISO8601DateFormatter().date(from: lastReviewedStr)
+            entry.lastReviewedAt = Self.parseISODate(lastReviewedStr)
         }
         if let nextReviewStr = remote["next_review_at"] as? String {
-            entry.nextReviewAt = ISO8601DateFormatter().date(from: nextReviewStr)
+            entry.nextReviewAt = Self.parseISODate(nextReviewStr)
         }
         if let updatedStr = remote["updated_at"] as? String {
-            entry.updatedAt = ISO8601DateFormatter().date(from: updatedStr) ?? Date()
+            entry.updatedAt = Self.parseISODate(updatedStr) ?? Date()
         }
 
         entry.backendId = remote["id"] as? String
@@ -368,7 +428,7 @@ class VocabularySyncService {
 
         // Override created_at
         if let createdStr = remote["created_at"] as? String {
-            entry.createdAt = ISO8601DateFormatter().date(from: createdStr) ?? Date()
+            entry.createdAt = Self.parseISODate(createdStr) ?? Date()
         } else {
             entry.createdAt = Date()
         }

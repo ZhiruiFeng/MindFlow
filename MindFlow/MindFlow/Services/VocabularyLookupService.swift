@@ -27,7 +27,13 @@ class VocabularyLookupService {
     ///   - context: Optional context where the word was encountered
     /// - Returns: WordExplanation with comprehensive word information
     func lookupWord(_ word: String, context: String? = nil) async throws -> WordExplanation {
-        guard !settings.openAIKey.isEmpty else {
+        // Snapshot Settings (an ObservableObject) on the main actor before any
+        // background work to avoid a data race.
+        let (apiKey, model) = await MainActor.run {
+            (settings.openAIKey, settings.llmModel)
+        }
+
+        guard !apiKey.isEmpty else {
             throw VocabularyLookupError.missingAPIKey
         }
 
@@ -36,12 +42,14 @@ class VocabularyLookupService {
             throw VocabularyLookupError.invalidWord("Word cannot be empty")
         }
 
-        print("🔍 [VocabularyLookup] Looking up: \(trimmedWord)")
+        Logger.info("Looking up vocabulary word", category: .vocabulary)
 
         let systemPrompt = buildSystemPrompt()
         let userPrompt = buildUserPrompt(word: trimmedWord, context: context)
 
         let response = try await callOpenAI(
+            apiKey: apiKey,
+            model: model,
             systemPrompt: systemPrompt,
             userPrompt: userPrompt,
             temperature: 0.3,
@@ -50,7 +58,7 @@ class VocabularyLookupService {
 
         let explanation = try parseResponse(response, word: trimmedWord)
 
-        print("✅ [VocabularyLookup] Successfully looked up: \(trimmedWord)")
+        Logger.info("Successfully looked up vocabulary word", category: .vocabulary)
         return explanation
     }
 
@@ -100,6 +108,8 @@ class VocabularyLookupService {
     }
 
     private func callOpenAI(
+        apiKey: String,
+        model: LLMModel,
         systemPrompt: String,
         userPrompt: String,
         temperature: Double,
@@ -113,19 +123,32 @@ class VocabularyLookupService {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(settings.openAIKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30.0
 
-        let requestBody: [String: Any] = [
-            "model": settings.llmModel.rawValue,
+        var requestBody: [String: Any] = [
+            "model": model.rawValue,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userPrompt]
-            ],
-            "temperature": temperature,
-            "max_tokens": maxTokens
+            ]
         ]
+
+        // GPT-5 family models use `max_completion_tokens` and only support the
+        // default temperature, so omit the custom temperature for them.
+        if model.isGPT5Family {
+            // Reasoning models share the completion-token budget between hidden
+            // reasoning tokens and the visible answer. The lookup budget (1200)
+            // is easily consumed entirely by reasoning, leaving an empty/truncated
+            // response that fails to parse, so request minimal reasoning effort and
+            // give a generous budget — matching LLMService.
+            requestBody["reasoning_effort"] = "minimal"
+            requestBody["max_completion_tokens"] = max(maxTokens, 4000)
+        } else {
+            requestBody["temperature"] = temperature
+            requestBody["max_tokens"] = maxTokens
+        }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
@@ -180,7 +203,7 @@ class VocabularyLookupService {
             let explanation = try JSONDecoder().decode(WordExplanation.self, from: data)
             return explanation
         } catch {
-            print("⚠️ [VocabularyLookup] JSON parse error: \(error)")
+            Logger.warning("JSON parse error: \(error)", category: .vocabulary)
             // Try to extract at least the basic information
             return try parsePartialResponse(cleanedResponse, word: word)
         }
@@ -190,7 +213,7 @@ class VocabularyLookupService {
         // Attempt to create a basic explanation from partial data
         // This is a fallback when full JSON parsing fails
 
-        print("⚠️ [VocabularyLookup] Attempting partial parse for: \(word)")
+        Logger.warning("Attempting partial parse of vocabulary response", category: .vocabulary)
 
         // Try to extract definition if present in the response
         var definitionEN: String? = nil

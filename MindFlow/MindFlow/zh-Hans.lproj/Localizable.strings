@@ -37,6 +37,7 @@
 "preview.optimized" = "优化后：";
 "preview.no_optimization" = "未进行优化";
 "preview.optimization_level" = "优化级别：";
+"preview.optimization_model_help" = "用于优化此文本的 LLM 模型。可在设置中更改。";
 "preview.copy" = "复制";
 "preview.reoptimize" = "重新优化";
 "preview.paste" = "粘贴";
@@ -101,6 +102,7 @@
 "enum.stt.elevenlabs" = "ElevenLabs";
 
 // LLM Models
+"enum.llm.gpt5_nano" = "GPT-5 Nano (最快，成本最低)";
 "enum.llm.gpt4o_mini" = "GPT-4o Mini (推荐)";
 "enum.llm.gpt4o" = "GPT-4o";
 "enum.llm.gpt4" = "GPT-4";
@@ -145,3 +147,24 @@
 "vocabulary.suggestions.definition" = "定义";
 "vocabulary.suggestions.why_learn" = "为什么要学这个词？";
 "vocabulary.suggestions.source" = "上下文用法";
+
+// MARK: - Interaction Detail
+"detail.title" = "记录详情";
+"detail.done" = "完成";
+"detail.source_synced" = "已同步";
+"detail.source_local" = "仅本地";
+"detail.original" = "原文";
+"detail.refined" = "优化后";
+"detail.teacher_note" = "导师笔记";
+"detail.metadata" = "详细信息";
+"detail.duration" = "时长";
+"detail.stt_provider" = "转录服务";
+"detail.stt_model" = "转录模型";
+"detail.optimization_model" = "优化模型";
+"detail.optimization_level" = "优化级别";
+"detail.output_style" = "输出风格";
+"detail.language" = "语言";
+"detail.created" = "创建时间";
+"detail.updated" = "更新时间";
+"detail.copy" = "复制";
+"detail.copied" = "已复制";

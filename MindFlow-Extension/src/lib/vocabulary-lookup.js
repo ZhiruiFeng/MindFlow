@@ -97,21 +97,30 @@ Return JSON with this exact structure:
     const settings = await storageManager.getSettings();
     const model = settings.llmModel || 'gpt-4o-mini';
 
+    const requestBody = {
+      model: model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ]
+    };
+
+    // GPT-5 family models use `max_completion_tokens` and only support the
+    // default temperature (1), so omit the custom temperature for them.
+    if (model.startsWith('gpt-5')) {
+      requestBody.max_completion_tokens = 1200;
+    } else {
+      requestBody.temperature = 0.3;
+      requestBody.max_tokens = 1200;
+    }
+
     const response = await fetch(this.endpoint, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 1200
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

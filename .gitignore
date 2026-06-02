@@ -82,6 +82,10 @@ fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
 
+# UX screenshots — scratch tier (iterate freely). Canonical, committed
+# screenshots live in docs/ux-audit/screenshots/ (see docs/ux-audit/SCREENSHOTS_SOP.md).
+/screenshots/
+
 # Code Injection
 #
 # After new code Injection tools there's a generated folder /iOSInjectionProject

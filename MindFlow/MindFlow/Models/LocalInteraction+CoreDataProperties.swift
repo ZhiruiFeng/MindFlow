@@ -37,6 +37,11 @@ extension LocalInteraction {
     @NSManaged public var audioDuration: Double
     @NSManaged public var audioFileUrl: String?
 
+    /// JSON-encoded array of vocabulary suggestions captured at record time.
+    /// Stored as a string so the lightweight Core Data migration stays trivial;
+    /// use `vocabularySuggestionsArray` for typed access.
+    @NSManaged public var vocabularySuggestions: String?
+
     // MARK: - Sync Status
 
     @NSManaged public var syncStatus: String?

@@ -63,6 +63,7 @@ class STTService {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 120
 
         let trimmedKey = settings.openAIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         request.setValue("Bearer \(trimmedKey)", forHTTPHeaderField: "Authorization")
@@ -82,7 +83,12 @@ class STTService {
         // This allows transcription of any language
 
         // Add audio file
-        let audioData = try Data(contentsOf: audioURL)
+        let audioData: Data
+        do {
+            audioData = try Data(contentsOf: audioURL)
+        } catch {
+            throw STTError.invalidAudioFile
+        }
         body.append("--\(boundary)\r\n")
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(audioURL.lastPathComponent)\"\r\n")
         body.append("Content-Type: audio/m4a\r\n\r\n")
@@ -132,6 +138,7 @@ class STTService {
         }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
+        request.timeoutInterval = 120
 
         let trimmedKey = settings.elevenLabsKey.trimmingCharacters(in: .whitespacesAndNewlines)
         request.setValue(trimmedKey, forHTTPHeaderField: "xi-api-key")
@@ -148,7 +155,12 @@ class STTService {
         body.append("scribe_v1\r\n")
 
         // Add audio file
-        let audioData = try Data(contentsOf: audioURL)
+        let audioData: Data
+        do {
+            audioData = try Data(contentsOf: audioURL)
+        } catch {
+            throw STTError.invalidAudioFile
+        }
         body.append("--\(boundary)\r\n")
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(audioURL.lastPathComponent)\"\r\n")
         body.append("Content-Type: audio/m4a\r\n\r\n")

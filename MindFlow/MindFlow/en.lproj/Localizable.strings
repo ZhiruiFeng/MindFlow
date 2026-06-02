@@ -37,6 +37,7 @@
 "preview.optimized" = "Optimized:";
 "preview.no_optimization" = "No optimization performed";
 "preview.optimization_level" = "Optimization Level:";
+"preview.optimization_model_help" = "The LLM model used to optimize this text. Change it in Settings.";
 "preview.copy" = "Copy";
 "preview.reoptimize" = "Re-optimize";
 "preview.paste" = "Paste";
@@ -101,6 +102,7 @@
 "enum.stt.elevenlabs" = "ElevenLabs";
 
 // LLM Models
+"enum.llm.gpt5_nano" = "GPT-5 Nano (Fastest, lowest cost)";
 "enum.llm.gpt4o_mini" = "GPT-4o Mini (Recommended)";
 "enum.llm.gpt4o" = "GPT-4o";
 "enum.llm.gpt4" = "GPT-4";
@@ -145,3 +147,24 @@
 "vocabulary.suggestions.definition" = "Definition";
 "vocabulary.suggestions.why_learn" = "Why learn this word?";
 "vocabulary.suggestions.source" = "Used in context";
+
+// MARK: - Interaction Detail
+"detail.title" = "Record Details";
+"detail.done" = "Done";
+"detail.source_synced" = "Synced";
+"detail.source_local" = "Local only";
+"detail.original" = "Original";
+"detail.refined" = "Refined";
+"detail.teacher_note" = "Teacher's Note";
+"detail.metadata" = "Details";
+"detail.duration" = "Duration";
+"detail.stt_provider" = "Transcription Provider";
+"detail.stt_model" = "Transcription Model";
+"detail.optimization_model" = "Optimization Model";
+"detail.optimization_level" = "Optimization Level";
+"detail.output_style" = "Output Style";
+"detail.language" = "Language";
+"detail.created" = "Created";
+"detail.updated" = "Updated";
+"detail.copy" = "Copy";
+"detail.copied" = "Copied";

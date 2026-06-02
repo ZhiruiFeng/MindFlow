@@ -27,33 +27,24 @@ class MindFlowAPIClient {
 
     /// Create a new interaction record
     func createInteraction(_ request: CreateInteractionRequest) async throws -> InteractionRecord {
-        guard let accessToken = getAccessToken() else {
-            Logger.error("Not authenticated", category: .api)
-            throw MindFlowAPIError.notAuthenticated
-        }
-
-        let url = URL(string: "\(baseURL)/api/mindflow-stt-interactions")!
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let url = try makeURL(path: "/api/mindflow-stt-interactions")
 
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
-        urlRequest.httpBody = try encoder.encode(request)
+        let body = try encoder.encode(request)
 
-        let (data, response) = try await session.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            Logger.error("Invalid HTTP response", category: .api)
-            throw MindFlowAPIError.invalidResponse
+        let (data, httpResponse) = try await performAuthenticated { accessToken in
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "POST"
+            urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            urlRequest.httpBody = body
+            return urlRequest
         }
 
         guard httpResponse.statusCode == 201 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             Logger.error("HTTP \(httpResponse.statusCode)", category: .api)
-            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: "Request failed")
         }
 
         let decoder = createDecoder()
@@ -69,14 +60,12 @@ class MindFlowAPIClient {
         limit: Int? = nil,
         offset: Int? = nil
     ) async throws -> [InteractionRecord] {
-        print("📥 [MindFlowAPI] Fetching interactions - Limit: \(limit ?? 0), Offset: \(offset ?? 0)")
+        Logger.info("Fetching interactions", category: .api)
 
-        guard let accessToken = getAccessToken() else {
-            print("❌ [MindFlowAPI] Fetch failed - No access token")
-            throw MindFlowAPIError.notAuthenticated
+        guard var components = URLComponents(string: "\(baseURL)/api/mindflow-stt-interactions") else {
+            Logger.error("Invalid URL constructed", category: .api)
+            throw MindFlowAPIError.invalidURL
         }
-
-        var components = URLComponents(string: "\(baseURL)/api/mindflow-stt-interactions")!
         var queryItems: [URLQueryItem] = []
 
         if let transcriptionApi = transcriptionApi {
@@ -97,71 +86,50 @@ class MindFlowAPIClient {
         }
 
         guard let url = components.url else {
-            print("❌ [MindFlowAPI] Invalid URL constructed")
+            Logger.error("Invalid URL constructed", category: .api)
             throw MindFlowAPIError.invalidURL
         }
 
-        print("🌐 [MindFlowAPI] GET \(url.absoluteString)")
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "GET"
-        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await session.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ [MindFlowAPI] Invalid HTTP response")
-            throw MindFlowAPIError.invalidResponse
+        let (data, httpResponse) = try await performAuthenticated { accessToken in
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "GET"
+            urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            return urlRequest
         }
 
-        print("📥 [MindFlowAPI] Response: HTTP \(httpResponse.statusCode)")
+        Logger.debug("Response: HTTP \(httpResponse.statusCode)", category: .api)
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("❌ [MindFlowAPI] Fetch failed - HTTP \(httpResponse.statusCode): \(errorMessage)")
-            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
-        }
-
-        // Log the raw response for debugging
-        if let responseString = String(data: data, encoding: .utf8) {
-            print("📄 [MindFlowAPI] Raw response: \(responseString.prefix(500))...")
+            Logger.error("Fetch failed - HTTP \(httpResponse.statusCode)", category: .api)
+            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: "Request failed")
         }
 
         let decoder = createDecoder()
 
         do {
             let interactionsResponse = try decoder.decode(InteractionsResponse.self, from: data)
-            print("✅ [MindFlowAPI] Fetched \(interactionsResponse.interactions.count) interactions")
+            Logger.info("Fetched \(interactionsResponse.interactions.count) interactions", category: .api)
             return interactionsResponse.interactions
         } catch {
-            print("❌ [MindFlowAPI] Decoding error: \(error)")
-            if let decodingError = error as? DecodingError {
-                print("   📋 Decoding details: \(decodingError)")
-            }
+            Logger.error("Decoding error", category: .api, error: error)
             throw MindFlowAPIError.decodingError(error)
         }
     }
 
     /// Get a single interaction by ID
     func getInteraction(_ id: UUID) async throws -> InteractionRecord {
-        guard let accessToken = getAccessToken() else {
-            throw MindFlowAPIError.notAuthenticated
-        }
+        let url = try makeURL(path: "/api/mindflow-stt-interactions/\(id.uuidString)")
 
-        let url = URL(string: "\(baseURL)/api/mindflow-stt-interactions/\(id.uuidString)")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "GET"
-        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await session.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw MindFlowAPIError.invalidResponse
+        let (data, httpResponse) = try await performAuthenticated { accessToken in
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "GET"
+            urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            return urlRequest
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            Logger.error("HTTP \(httpResponse.statusCode)", category: .api)
+            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: "Request failed")
         }
 
         let decoder = createDecoder()
@@ -172,48 +140,130 @@ class MindFlowAPIClient {
 
     /// Delete an interaction by ID
     func deleteInteraction(_ id: UUID) async throws {
-        print("🗑️ [MindFlowAPI] Deleting interaction - ID: \(id.uuidString)")
+        Logger.info("Deleting interaction", category: .api)
 
-        guard let accessToken = getAccessToken() else {
-            print("❌ [MindFlowAPI] Delete failed - No access token")
-            throw MindFlowAPIError.notAuthenticated
+        let url = try makeURL(path: "/api/mindflow-stt-interactions/\(id.uuidString)")
+
+        let (_, httpResponse) = try await performAuthenticated { accessToken in
+            var urlRequest = URLRequest(url: url)
+            urlRequest.httpMethod = "DELETE"
+            urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+            return urlRequest
         }
 
-        let url = URL(string: "\(baseURL)/api/mindflow-stt-interactions/\(id.uuidString)")!
-        print("🌐 [MindFlowAPI] DELETE \(url.absoluteString)")
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "DELETE"
-        urlRequest.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await session.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            print("❌ [MindFlowAPI] Invalid HTTP response")
-            throw MindFlowAPIError.invalidResponse
-        }
-
-        print("📥 [MindFlowAPI] Response: HTTP \(httpResponse.statusCode)")
+        Logger.debug("Response: HTTP \(httpResponse.statusCode)", category: .api)
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            print("❌ [MindFlowAPI] Delete failed - HTTP \(httpResponse.statusCode): \(errorMessage)")
-            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: errorMessage)
+            Logger.error("Delete failed - HTTP \(httpResponse.statusCode)", category: .api)
+            throw MindFlowAPIError.httpError(statusCode: httpResponse.statusCode, message: "Request failed")
         }
 
-        print("✅ [MindFlowAPI] Interaction deleted successfully")
+        Logger.info("Interaction deleted successfully", category: .api)
     }
 
     // MARK: - Helper Methods
 
+    /// Builds a `URL` from a path relative to `baseURL`, throwing instead of crashing.
+    private func makeURL(path: String) throws -> URL {
+        guard let url = URL(string: "\(baseURL)\(path)") else {
+            throw MindFlowAPIError.invalidURL
+        }
+        return url
+    }
+
+    /// Executes an authenticated request, retrying once after a 401 with a refreshed token.
+    ///
+    /// The `build` closure receives the current access token and returns the request
+    /// to send. On a 401 response, a token refresh is attempted and the request is
+    /// rebuilt with the new token and retried exactly once.
+    private func performAuthenticated(
+        _ build: (_ accessToken: String) throws -> URLRequest
+    ) async throws -> (Data, HTTPURLResponse) {
+        guard let accessToken = getAccessToken() else {
+            throw MindFlowAPIError.notAuthenticated
+        }
+
+        let request = try build(accessToken)
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            Logger.error("Invalid HTTP response", category: .api)
+            throw MindFlowAPIError.invalidResponse
+        }
+
+        // On 401, attempt a single refresh-and-retry.
+        guard httpResponse.statusCode == 401 else {
+            return (data, httpResponse)
+        }
+
+        Logger.info("Received 401, attempting token refresh", category: .auth)
+        guard let newToken = await refreshAccessToken() else {
+            throw MindFlowAPIError.notAuthenticated
+        }
+
+        let retryRequest = try build(newToken)
+        let (retryData, retryResponse) = try await session.data(for: retryRequest)
+        guard let retryHTTP = retryResponse as? HTTPURLResponse else {
+            Logger.error("Invalid HTTP response", category: .api)
+            throw MindFlowAPIError.invalidResponse
+        }
+        return (retryData, retryHTTP)
+    }
+
     private func getAccessToken() -> String? {
-        let token = UserDefaults.standard.string(forKey: "supabase_access_token")
+        let token = KeychainManager.shared.get(key: SupabaseKeychainKeys.accessToken)
         if token != nil {
             Logger.debug("Access token found", category: .auth)
         } else {
             Logger.warning("No access token found", category: .auth)
         }
         return token
+    }
+
+    /// Attempts to refresh the access token after a 401 and returns the new token.
+    ///
+    /// Performs a single `grant_type=refresh_token` exchange using the stored
+    /// refresh token, then persists the new token pair to the Keychain using the
+    /// shared `SupabaseKeychainKeys`.
+    /// - Returns: A fresh access token, or `nil` if refresh is not possible.
+    private func refreshAccessToken() async -> String? {
+        guard let refreshToken = KeychainManager.shared.get(key: SupabaseKeychainKeys.refreshToken) else {
+            Logger.warning("No refresh token available", category: .auth)
+            return nil
+        }
+
+        let supabaseURL = ConfigurationManager.shared.supabaseURL
+        guard let url = URL(string: "\(supabaseURL)/auth/v1/token?grant_type=refresh_token") else {
+            Logger.error("Invalid refresh URL", category: .auth)
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue(ConfigurationManager.shared.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["refresh_token": refreshToken])
+            let (data, response) = try await session.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                Logger.warning("Token refresh rejected by server", category: .auth)
+                return nil
+            }
+
+            let tokens = try JSONDecoder().decode(SupabaseTokenResponse.self, from: data)
+            KeychainManager.shared.save(key: SupabaseKeychainKeys.accessToken, value: tokens.accessToken)
+            if let newRefresh = tokens.refreshToken {
+                KeychainManager.shared.save(key: SupabaseKeychainKeys.refreshToken, value: newRefresh)
+            }
+            Logger.info("Access token refreshed", category: .auth)
+            return tokens.accessToken
+        } catch {
+            Logger.warning("Token refresh failed", category: .auth)
+            return nil
+        }
     }
 
     /// Create a JSON decoder configured for our API responses

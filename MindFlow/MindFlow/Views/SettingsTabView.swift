@@ -13,6 +13,7 @@ import SwiftUI
 struct SettingsTabView: View {
     @ObservedObject private var settings = Settings.shared
     @ObservedObject private var permissionManager = PermissionManager.shared
+    @ObservedObject private var loc = LocalizationManager.shared
     @EnvironmentObject private var authService: SupabaseAuthService
 
     @State private var openAIKeyInput: String = Settings.shared.openAIKey
@@ -391,9 +392,6 @@ struct SettingsTabView: View {
             HStack {
                 SecureField("settings.elevenlabs_placeholder".localized, text: $elevenLabsKeyInput)
                     .textFieldStyle(.roundedBorder)
-                    .onAppear {
-                        elevenLabsKeyInput = settings.elevenLabsKey
-                    }
 
                 Button(action: {
                     settings.elevenLabsKey = elevenLabsKeyInput

@@ -37,7 +37,7 @@ final class ConfigurationManager {
         guard let path = Bundle.main.path(forResource: "Configuration", ofType: "plist"),
               let data = FileManager.default.contents(atPath: path),
               let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
-            print("⚠️ Warning: Configuration.plist not found or invalid")
+            Logger.warning("Configuration.plist not found or invalid", category: .general)
             return
         }
 
@@ -50,7 +50,7 @@ final class ConfigurationManager {
         guard let supabase = configuration?["Supabase"] as? [String: String],
               let url = supabase["URL"],
               url != "YOUR_SUPABASE_URL_HERE" else {
-            print("⚠️ Warning: Supabase URL not configured in Configuration.plist")
+            Logger.warning("Supabase URL not configured in Configuration.plist", category: .general)
             return ""
         }
         return url
@@ -60,7 +60,7 @@ final class ConfigurationManager {
         guard let supabase = configuration?["Supabase"] as? [String: String],
               let anonKey = supabase["AnonKey"],
               anonKey != "YOUR_SUPABASE_ANON_KEY_HERE" else {
-            print("⚠️ Warning: Supabase Anon Key not configured in Configuration.plist")
+            Logger.warning("Supabase Anon Key not configured in Configuration.plist", category: .general)
             return ""
         }
         return anonKey
@@ -70,7 +70,7 @@ final class ConfigurationManager {
         guard let supabase = configuration?["Supabase"] as? [String: String],
               let redirectURI = supabase["RedirectURI"],
               redirectURI != "YOUR_REDIRECT_URI_HERE" else {
-            print("⚠️ Warning: Supabase Redirect URI not configured in Configuration.plist")
+            Logger.warning("Supabase Redirect URI not configured in Configuration.plist, using default", category: .general)
             return "com.mindflow.app:/oauth/callback"
         }
         return redirectURI
@@ -82,7 +82,7 @@ final class ConfigurationManager {
         guard let api = configuration?["API"] as? [String: String],
               let url = api["ZMemoryURL"],
               url != "YOUR_ZMEMORY_API_URL_HERE" else {
-            print("⚠️ Warning: ZMemory API URL not configured, using default")
+            Logger.warning("ZMemory API URL not configured, using default", category: .general)
             return "https://zmemory.zephyros.app"
         }
         return url

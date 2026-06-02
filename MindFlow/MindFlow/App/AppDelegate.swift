@@ -19,21 +19,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Vocabulary notification timer
     private var reviewReminderTimer: Timer?
 
+    // Whether the user authorized user-notification delivery. Review reminders
+    // are only scheduled when this is true.
+    private var isNotificationAuthorized = false
+
+    // Stable identifier so a newly scheduled review reminder replaces the prior
+    // one instead of stacking up multiple notifications.
+    private static let reviewReminderIdentifier = "vocabulary-review-reminder"
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Show Dock icon, run as normal application
         NSApplication.shared.setActivationPolicy(.regular)
 
-        // Register global hotkey
-        setupHotKey()
+        // In UI-test mode, skip hotkey registration, permission prompts, and
+        // review reminders so automated screenshots are deterministic and no
+        // system modal blocks the window.
+        if !LaunchMode.isUITesting {
+            // Register global hotkey
+            setupHotKey()
 
-        // Setup recording keyboard shortcuts (fn+shift)
-        setupRecordingKeyboard()
+            // Setup recording keyboard shortcuts (fn+shift)
+            setupRecordingKeyboard()
 
-        // Check permissions
-        checkPermissions()
+            // Check permissions
+            checkPermissions()
 
-        // Setup vocabulary review reminders
-        setupReviewReminders()
+            // Setup vocabulary review reminders
+            setupReviewReminders()
+        }
 
         print("✅ MindFlow 启动成功")
     }
@@ -43,11 +56,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return false // Keep app running in Dock
     }
 
-    // When user clicks Dock icon, reopen window if no windows exist
+    // When user clicks Dock icon, reopen the main window if none is visible
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         if !flag {
-            // No visible windows - create/show a window
-            showAndFocusWindow()
+            NotificationCenter.default.post(name: .showMainWindow, object: nil)
         }
         return true
     }
@@ -56,16 +68,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Hot Key Setup
     
     private func setupHotKey() {
-        // Register default hotkey: Cmd+Shift+V
+        // Register the global hotkey ⌘⇧V — the single "press-to-talk" shortcut.
         // cmdKey = 0x0100 (256), shiftKey = 0x0200 (512)
         let modifiers: UInt32 = 0x0100 | 0x0200  // Cmd + Shift
         hotKeyManager.registerHotKey(keyCode: 9, modifiers: modifiers) { [weak self] in
-            self?.activateApp()
+            self?.toggleRecordingViaHotKey()
         }
     }
 
-    private func activateApp() {
+    /// ⌘⇧V toggles recording: open/focus the window, then start or stop based on
+    /// the current state. This makes the marquee global shortcut do the core
+    /// action directly instead of merely activating the app.
+    private func toggleRecordingViaHotKey() {
         NSApp.activate(ignoringOtherApps: true)
+        NotificationCenter.default.post(name: .showMainWindow, object: nil)
+        NotificationCenter.default.post(name: .switchToRecordingTab, object: nil)
+        // Let the window come forward (and recreate the recording view model if
+        // it was closed) before toggling.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            if AppStatus.shared.isRecording {
+                NotificationCenter.default.post(name: .stopRecordingShortcut, object: nil)
+            } else {
+                NotificationCenter.default.post(name: .startRecordingShortcut, object: nil)
+            }
+        }
     }
 
     // MARK: - Recording Keyboard Setup
@@ -79,7 +105,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleRecordingShortcut(start: Bool) {
         // Only show window and start recording when pressing the shortcut
         if start {
-            showAndFocusWindow()
+            // Bring the main window forward (handled by the SwiftUI menu-bar bridge)
+            NotificationCenter.default.post(name: .showMainWindow, object: nil)
 
             // Switch to recording tab
             NotificationCenter.default.post(name: .switchToRecordingTab, object: nil)
@@ -92,84 +119,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Just stop recording, keep window open
             NotificationCenter.default.post(name: .stopRecordingShortcut, object: nil)
         }
-    }
-
-    /// Show and bring window to front, even if minimized or hidden
-    private func showAndFocusWindow() {
-        // Activate the app
-        NSApp.activate(ignoringOtherApps: true)
-
-        // Try to find an existing window (excluding panels and other non-main windows)
-        let mainWindows = NSApp.windows.filter { window in
-            // Filter for actual app windows (not system panels, sheets, etc)
-            return window.canBecomeKey &&
-                   !window.title.isEmpty &&
-                   (window.isVisible || window.isMiniaturized)
-        }
-
-        if let mainWindow = mainWindows.first {
-            // If minimized, deminiaturize
-            if mainWindow.isMiniaturized {
-                mainWindow.deminiaturize(nil)
-            }
-
-            // Make it key and bring to front
-            mainWindow.makeKeyAndOrderFront(nil)
-            mainWindow.orderFrontRegardless()
-            print("✅ Window restored and brought to front")
-        } else {
-            // Try ANY window as fallback
-            if let anyWindow = NSApp.windows.first(where: { $0.canBecomeKey }) {
-                anyWindow.makeKeyAndOrderFront(nil)
-                anyWindow.orderFrontRegardless()
-                print("✅ Fallback: Window shown")
-            } else {
-                // No window exists at all - need to create one
-                // This can happen if user closed the window with Cmd+W
-                print("⚠️ No window found - creating new window programmatically")
-
-                createNewWindow()
-            }
-        }
-    }
-
-    /// Create a new window programmatically when all windows are closed
-    private func createNewWindow() {
-        // For SwiftUI WindowGroup apps, triggering a new window is tricky
-        // Best approach: Use KeyEquivalent for Cmd+N which triggers new window
-
-        // Method 1: Try the standard new window action
-        let newWindowSelector = NSSelectorFromString("newDocument:")
-        if NSApp.responds(to: newWindowSelector) {
-            NSApp.perform(newWindowSelector, with: nil)
-            print("✅ Sent newDocument action")
-        }
-
-        // Method 2: Try newWindowForTab
-        NSApp.sendAction(#selector(NSResponder.newWindowForTab(_:)), to: nil, from: nil)
-
-        // Give it a moment to create the window, then activate it
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            if let window = NSApp.windows.first(where: { $0.canBecomeKey }) {
-                window.makeKeyAndOrderFront(nil)
-                window.orderFrontRegardless()
-                print("✅ New window created and activated")
-            } else {
-                print("❌ Failed to create window - user may need to click the Dock icon")
-
-                // Show notification to user
-                self.showWindowCreationFailedNotification()
-            }
-        }
-    }
-
-    /// Show a system notification when window creation fails
-    private func showWindowCreationFailedNotification() {
-        let notification = NSUserNotification()
-        notification.title = "MindFlow"
-        notification.informativeText = "Please click the MindFlow icon in the Dock to open the window"
-        notification.soundName = NSUserNotificationDefaultSoundName
-        NSUserNotificationCenter.default.deliver(notification)
     }
 
     // MARK: - Permissions
@@ -239,22 +188,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+            // Store the granted result so we can skip scheduling reminders when
+            // the user has not authorized notifications.
+            self?.isNotificationAuthorized = granted
             if granted {
-                print("✅ Notification permission granted")
+                Logger.info("Notification permission granted", category: .general)
             } else if let error = error {
-                print("❌ Notification permission error: \(error)")
+                Logger.error("Notification permission error", category: .general, error: error)
+            } else {
+                Logger.warning("Notification permission denied", category: .general)
             }
         }
     }
 
     private func checkAndNotifyReviewDue() {
-        guard settings.vocabularyReviewRemindersEnabled else { return }
-
         let dueWords = VocabularyStorage.shared.fetchWordsDueForReview()
         let dueCount = dueWords.count
 
+        // Keep the menu-bar review badge in sync regardless of whether
+        // notification reminders are enabled.
+        Task { @MainActor in
+            AppStatus.shared.dueReviewCount = dueCount
+        }
+
+        guard settings.vocabularyReviewRemindersEnabled else { return }
         guard dueCount > 0 else { return }
+        // Don't schedule reminders if the user hasn't authorized notifications.
+        guard isNotificationAuthorized else { return }
 
         // Create notification
         let content = UNMutableNotificationContent()
@@ -268,9 +229,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Create trigger (immediate)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
 
-        // Create request
+        // Create request with a stable identifier so a new reminder replaces the
+        // prior one instead of stacking.
         let request = UNNotificationRequest(
-            identifier: "vocabulary-review-\(Date().timeIntervalSince1970)",
+            identifier: AppDelegate.reviewReminderIdentifier,
             content: content,
             trigger: trigger
         )
@@ -278,9 +240,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Schedule notification
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("❌ Failed to schedule notification: \(error)")
+                Logger.error("Failed to schedule notification", category: .general, error: error)
             } else {
-                print("📢 Review reminder notification scheduled (\(dueCount) words due)")
+                Logger.info("Review reminder notification scheduled (\(dueCount) words due)", category: .general)
             }
         }
     }

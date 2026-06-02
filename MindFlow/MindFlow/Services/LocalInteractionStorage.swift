@@ -9,6 +9,10 @@ import Foundation
 import CoreData
 
 /// Service for local interaction storage and retrieval
+///
+/// `CoreDataManager.viewContext` is a main-queue context, so all access to it
+/// and to its managed objects must occur on the main actor.
+@MainActor
 class LocalInteractionStorage {
     static let shared = LocalInteractionStorage()
 
@@ -34,7 +38,8 @@ class LocalInteractionStorage {
         refinedText: String?,
         teacherExplanation: String?,
         audioDuration: Double?,
-        metadata: InteractionMetadata
+        metadata: InteractionMetadata,
+        vocabularySuggestions: [VocabularySuggestion]? = nil
     ) -> LocalInteraction {
         let context = coreData.viewContext
         let interaction = LocalInteraction(context: context)
@@ -48,6 +53,9 @@ class LocalInteractionStorage {
         interaction.originalTranscription = transcription
         interaction.refinedText = refinedText
         interaction.teacherExplanation = teacherExplanation
+        if let suggestions = vocabularySuggestions {
+            interaction.vocabularySuggestionsArray = suggestions
+        }
 
         // Metadata
         interaction.transcriptionApi = metadata.transcriptionApi
@@ -215,11 +223,19 @@ class LocalInteractionStorage {
     func deleteAllInteractions() {
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = LocalInteraction.fetchRequest()
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        deleteRequest.resultType = .resultTypeObjectIDs
 
         do {
-            try coreData.viewContext.execute(deleteRequest)
-            coreData.saveContext()
-            print("🗑️ [LocalStorage] All interactions deleted")
+            let context = coreData.viewContext
+            let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
+            let deletedObjectIDs = result?.result as? [NSManagedObjectID] ?? []
+            // Batch deletes bypass the context, so merge the deletions into the
+            // main-queue viewContext to keep in-memory objects consistent.
+            NSManagedObjectContext.mergeChanges(
+                fromRemoteContextSave: [NSDeletedObjectsKey: deletedObjectIDs],
+                into: [context]
+            )
+            print("🗑️ [LocalStorage] All interactions deleted (\(deletedObjectIDs.count))")
         } catch {
             print("❌ [LocalStorage] Delete all error: \(error.localizedDescription)")
         }
@@ -230,18 +246,25 @@ class LocalInteractionStorage {
     func deleteSyncedInteractionsOlderThan(date: Date) {
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = LocalInteraction.fetchRequest()
         fetchRequest.predicate = NSPredicate(
-            format: "syncStatus == %@ AND syncedAt < %@",
+            format: "syncStatus == %@ AND lastSyncAttempt < %@",
             LocalInteraction.SyncStatus.synced.rawValue,
             date as CVarArg
         )
 
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+        deleteRequest.resultType = .resultTypeObjectIDs
 
         do {
-            let result = try coreData.viewContext.execute(deleteRequest) as? NSBatchDeleteResult
-            let deletedCount = result?.result as? Int ?? 0
-            coreData.saveContext()
-            print("🗑️ [LocalStorage] Deleted \(deletedCount) old synced interactions")
+            let context = coreData.viewContext
+            let result = try context.execute(deleteRequest) as? NSBatchDeleteResult
+            let deletedObjectIDs = result?.result as? [NSManagedObjectID] ?? []
+            // Batch deletes bypass the context, so merge the deletions into the
+            // main-queue viewContext to keep in-memory objects consistent.
+            NSManagedObjectContext.mergeChanges(
+                fromRemoteContextSave: [NSDeletedObjectsKey: deletedObjectIDs],
+                into: [context]
+            )
+            print("🗑️ [LocalStorage] Deleted \(deletedObjectIDs.count) old synced interactions")
         } catch {
             print("❌ [LocalStorage] Delete old synced error: \(error.localizedDescription)")
         }

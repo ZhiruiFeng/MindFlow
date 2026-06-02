@@ -7,82 +7,70 @@
 
 import SwiftUI
 
-/// Main view - Integrates recording and settings functionality
+/// Main workspace window.
 ///
-/// Provides a unified user interface for navigating between recording and settings via tabs
+/// Uses a native `NavigationSplitView` sidebar (the standard macOS multi-pane
+/// layout) instead of the previous segmented-control + `TabView` combination,
+/// which rendered two competing sets of tab chrome. Settings now lives in its
+/// own `Settings` scene (⌘,) and recording can also be triggered from the
+/// menu bar, so this window is purely the workspace.
 struct MainView: View {
     @StateObject private var viewModel = RecordingViewModel()
     @ObservedObject private var localizationManager = LocalizationManager.shared
     @EnvironmentObject var authService: SupabaseAuthService
-    @State private var selectedTab: MainTab = .recording
+    @State private var selection: MainTab? = .recording
 
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            headerBar
-            Divider()
-            contentArea
-        }
-        .frame(minWidth: 500, minHeight: 600)
-        .onReceive(NotificationCenter.default.publisher(for: .switchToRecordingTab)) { _ in
-            selectedTab = .recording
-        }
-    }
-
-    // MARK: - Components
-
-    private var headerBar: some View {
-        HStack {
-            Image(systemName: "mic.fill")
-                .font(.title2)
-                .foregroundColor(.blue)
-            Text("MindFlow")
-                .font(.title2)
-                .bold()
-            Spacer()
-
-            tabSwitcher
-        }
-        .padding()
-        .background(Color(NSColor.windowBackgroundColor))
-    }
-
-    private var tabSwitcher: some View {
-        Picker("", selection: $selectedTab) {
-            ForEach(MainTab.allCases, id: \.self) { tab in
-                Image(systemName: tab.icon)
-                    .tag(tab)
+        NavigationSplitView {
+            List(selection: $selection) {
+                ForEach(MainTab.allCases, id: \.self) { tab in
+                    Label(tab.title, systemImage: tab.icon)
+                        .tag(tab)
+                }
             }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
+            .navigationTitle("MindFlow")
+        } detail: {
+            detailView
+                .frame(minWidth: 460, minHeight: 520)
         }
-        .pickerStyle(.segmented)
-        .frame(width: 275)
+        .frame(minWidth: 720, minHeight: 560)
+        .onReceive(NotificationCenter.default.publisher(for: .switchToRecordingTab)) { _ in
+            selection = .recording
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .switchToVocabularyTab)) { _ in
+            selection = .vocabulary
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .switchToSettingsTab)) { _ in
+            selection = .settings
+        }
     }
 
-    private var contentArea: some View {
-        TabView(selection: $selectedTab) {
+    // MARK: - Detail
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch selection ?? .recording {
+        case .recording:
             RecordingTabView(viewModel: viewModel)
-                .tag(MainTab.recording)
-
+        case .localHistory:
             LocalHistoryView()
-                .tag(MainTab.localHistory)
-
+        case .history:
             InteractionHistoryView()
-                .tag(MainTab.history)
-
+        case .vocabulary:
             VocabularyTabView()
-                .tag(MainTab.vocabulary)
-
+        case .settings:
             SettingsTabView()
-                .tag(MainTab.settings)
         }
-        .tabViewStyle(.automatic)
     }
 }
 
 // MARK: - Main Tab Enum
 
-/// Main view tab type
+/// Sidebar destinations for the main workspace window.
 enum MainTab: CaseIterable {
     case recording
     case localHistory
@@ -93,10 +81,10 @@ enum MainTab: CaseIterable {
     var icon: String {
         switch self {
         case .recording: return "mic.circle.fill"
-        case .localHistory: return "externaldrive"
+        case .localHistory: return "internaldrive"
         case .history: return "clock.arrow.circlepath"
-        case .vocabulary: return "book.fill"
-        case .settings: return "gear"
+        case .vocabulary: return "book"
+        case .settings: return "gearshape"
         }
     }
 
@@ -116,5 +104,6 @@ enum MainTab: CaseIterable {
 struct MainView_Previews: PreviewProvider {
     static var previews: some View {
         MainView()
+            .environmentObject(SupabaseAuthService())
     }
 }

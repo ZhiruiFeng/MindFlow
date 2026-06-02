@@ -103,6 +103,7 @@ struct AddWordView: View {
             HStack {
                 TextField("Enter a word to look up", text: $word)
                     .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("addWord.wordField")
                     .onSubmit {
                         if isWordValid && !useManualEntry {
                             lookupWord()
@@ -118,6 +119,7 @@ struct AddWordView: View {
             Toggle("Enter manually (offline mode)", isOn: $useManualEntry)
                 .font(.caption)
                 .foregroundColor(.secondary)
+                .accessibilityIdentifier("addWord.manualToggle")
         }
     }
 
@@ -296,6 +298,7 @@ struct AddWordView: View {
                 dismiss()
             }
             .keyboardShortcut(.escape)
+            .accessibilityIdentifier("addWord.cancel")
 
             Spacer()
 
@@ -305,6 +308,7 @@ struct AddWordView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!isWordValid)
+                .accessibilityIdentifier("addWord.save")
             } else {
                 if viewModel.lastLookupResult != nil {
                     Button("Add to Vocabulary") {

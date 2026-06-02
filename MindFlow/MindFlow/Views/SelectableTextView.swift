@@ -8,32 +8,52 @@
 import SwiftUI
 import AppKit
 
-/// A text view that allows selecting words to add to vocabulary
+/// A text view that allows selecting words to add to vocabulary.
+///
+/// Supports three modes that can be combined:
+/// - Read-only plain text (default)
+/// - Editable text via `editableText` (e.g. the optimized/refined field)
+/// - Rich rendering via `attributed` (e.g. formatted teacher notes); read-only only
+///
+/// When `dynamicHeight` is provided the view sizes itself to its content (its own
+/// scrolling is disabled) so it can grow inside an outer SwiftUI `ScrollView`.
 struct SelectableTextView: NSViewRepresentable {
     let text: String
+    var editableText: Binding<String>? = nil
+    var attributed: NSAttributedString? = nil
+    var dynamicHeight: Binding<CGFloat>? = nil
     let onWordSelected: (String, String) -> Void  // (word, context)
+
+    private var isEditable: Bool { editableText != nil }
+    private var isSelfSizing: Bool { dynamicHeight != nil }
 
     func makeNSView(context: Context) -> NSScrollView {
         let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
+        scrollView.hasVerticalScroller = !isSelfSizing
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
+        scrollView.drawsBackground = false
 
         let textView = VocabularyTextView()
-        textView.string = text
-        textView.isEditable = false
+        textView.onWordSelected = onWordSelected
+        textView.isEditable = isEditable
         textView.isSelectable = true
+        textView.usesFontPanel = false
         textView.backgroundColor = .clear
+        textView.drawsBackground = false
         textView.font = .systemFont(ofSize: 14)
         textView.textColor = .labelColor
         textView.delegate = context.coordinator
-        textView.allowsUndo = false
+        textView.allowsUndo = isEditable
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
+        textView.textContainerInset = NSSize(width: 2, height: 4)
 
         // Configure text container
         textView.textContainer?.containerSize = NSSize(width: scrollView.contentSize.width, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
+
+        applyContent(to: textView)
 
         scrollView.documentView = textView
 
@@ -41,142 +61,246 @@ struct SelectableTextView: NSViewRepresentable {
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        if let textView = scrollView.documentView as? NSTextView {
-            if textView.string != text {
-                textView.string = text
+        // Refresh the coordinator's view of the latest bindings/closures so it
+        // never writes through stale captured state after the bound value changes.
+        context.coordinator.parent = self
+
+        guard let textView = scrollView.documentView as? VocabularyTextView else { return }
+
+        textView.onWordSelected = onWordSelected
+
+        if isEditable {
+            // Push external changes (e.g. re-optimize) without clobbering edits.
+            if let binding = editableText, textView.string != binding.wrappedValue {
+                textView.string = binding.wrappedValue
+            }
+        } else if let attributed = attributed {
+            if textView.textStorage?.string != attributed.string {
+                textView.textStorage?.setAttributedString(attributed)
+            }
+        } else if textView.string != text {
+            textView.string = text
+        }
+
+        if isSelfSizing {
+            recalculateHeight(for: textView)
+        }
+    }
+
+    private func applyContent(to textView: NSTextView) {
+        if isEditable {
+            textView.string = editableText?.wrappedValue ?? text
+        } else if let attributed = attributed {
+            textView.textStorage?.setAttributedString(attributed)
+        } else {
+            textView.string = text
+        }
+    }
+
+    /// Measure the laid-out text and report its height back to SwiftUI.
+    private func recalculateHeight(for textView: NSTextView) {
+        guard let binding = dynamicHeight,
+              let layoutManager = textView.layoutManager,
+              let container = textView.textContainer else { return }
+
+        layoutManager.ensureLayout(for: container)
+        let used = layoutManager.usedRect(for: container).height
+        let height = ceil(used + textView.textContainerInset.height * 2)
+
+        if abs(binding.wrappedValue - height) > 0.5 {
+            // Defer to avoid mutating SwiftUI state during a view update.
+            DispatchQueue.main.async {
+                binding.wrappedValue = height
             }
         }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: text, onWordSelected: onWordSelected)
+        Coordinator(self)
     }
 
     class Coordinator: NSObject, NSTextViewDelegate {
-        let text: String
-        let onWordSelected: (String, String) -> Void
+        /// Reference back to the current representable so reads always use the
+        /// latest bindings/closures rather than values captured at creation.
+        var parent: SelectableTextView
 
-        init(text: String, onWordSelected: @escaping (String, String) -> Void) {
-            self.text = text
-            self.onWordSelected = onWordSelected
+        init(_ parent: SelectableTextView) {
+            self.parent = parent
         }
 
-        func textView(_ textView: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
-            let selectedRange = textView.selectedRange()
-            guard selectedRange.length > 0 else { return menu }
+        /// Mirror user edits back into the SwiftUI binding when editable.
+        func textDidChange(_ notification: Notification) {
+            guard let binding = parent.editableText,
+                  let textView = notification.object as? NSTextView else { return }
+            binding.wrappedValue = textView.string
+        }
+    }
+}
 
-            let selectedText = (textView.string as NSString).substring(with: selectedRange).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !selectedText.isEmpty else { return menu }
+/// Builds a styled, selectable representation of a teacher's note that mirrors
+/// `FormattedTeacherNoteView` (bold headers, orange bullets) while remaining a
+/// single attributed string so it can be hosted in a selectable NSTextView.
+/// The `Score:` line is dropped since callers display the score separately.
+func teacherNoteAttributedString(_ note: String) -> NSAttributedString {
+    let result = NSMutableAttributedString()
+    let bodyFont = NSFont.systemFont(ofSize: 13)
+    let boldFont = NSFont.boldSystemFont(ofSize: 13)
 
-            // Get context (surrounding sentence)
-            let context = extractContext(from: textView.string, at: selectedRange)
+    let lines = note.components(separatedBy: .newlines)
+    var isFirstLine = true
 
-            // Create custom menu
-            let customMenu = NSMenu()
+    for line in lines {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, !trimmed.contains("Score:") else { continue }
 
-            // Add vocabulary lookup item
-            let lookupItem = NSMenuItem(
+        if !isFirstLine {
+            result.append(NSAttributedString(string: "\n"))
+        }
+        isFirstLine = false
+
+        if trimmed.hasPrefix("•") || trimmed.hasPrefix("-") || trimmed.hasPrefix("*") {
+            let content = trimmed.dropFirst().trimmingCharacters(in: .whitespaces)
+            result.append(NSAttributedString(string: "•  ", attributes: [
+                .font: bodyFont,
+                .foregroundColor: NSColor.systemOrange
+            ]))
+            result.append(NSAttributedString(string: content, attributes: [
+                .font: bodyFont,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]))
+        } else if trimmed.hasSuffix(":") {
+            result.append(NSAttributedString(string: trimmed, attributes: [
+                .font: boldFont,
+                .foregroundColor: NSColor.labelColor
+            ]))
+        } else {
+            result.append(NSAttributedString(string: trimmed, attributes: [
+                .font: bodyFont,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]))
+        }
+    }
+
+    return result
+}
+
+/// Custom NSTextView with vocabulary support.
+///
+/// Builds its own context menu instead of deferring to AppKit's default rich-text
+/// menu. The default menu lazily assembles Font / Spelling / Substitutions / Speech
+/// submenus whose supermenu back-pointers are briefly inconsistent, which spams the
+/// console with "Internal inconsistency in menus". Supplying a focused menu here
+/// avoids that entirely while keeping the actions users actually need.
+class VocabularyTextView: NSTextView {
+    var onWordSelected: ((String, String) -> Void)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+
+        let range = selectedRange()
+        let selectedText = range.length > 0
+            ? (string as NSString).substring(with: range).trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
+
+        if !selectedText.isEmpty {
+            let item = NSMenuItem(
                 title: "Add \"\(selectedText.prefix(20))\" to Vocabulary",
-                action: #selector(addToVocabulary(_:)),
+                action: #selector(addSelectionToVocabulary(_:)),
                 keyEquivalent: ""
             )
-            lookupItem.representedObject = (selectedText, context)
-            lookupItem.target = self
-            customMenu.addItem(lookupItem)
-
-            customMenu.addItem(NSMenuItem.separator())
-
-            // Add original menu items
-            for item in menu.items {
-                customMenu.addItem(item.copy() as! NSMenuItem)
-            }
-
-            return customMenu
+            item.target = self
+            item.representedObject = [selectedText, extractContext(at: range)]
+            menu.addItem(item)
+            menu.addItem(.separator())
         }
 
-        @objc func addToVocabulary(_ sender: NSMenuItem) {
-            guard let (word, context) = sender.representedObject as? (String, String) else { return }
-            onWordSelected(word, context)
+        // Standard editing actions routed through the responder chain (target: nil).
+        if !selectedText.isEmpty {
+            if isEditable {
+                menu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "")
+            }
+            menu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "")
+        }
+        if isEditable {
+            menu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "")
+        }
+        if !string.isEmpty {
+            menu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "")
         }
 
-        private func extractContext(from text: String, at range: NSRange) -> String {
-            // Try to extract the sentence containing the selection
-            let nsText = text as NSString
+        return menu.items.isEmpty ? nil : menu
+    }
 
-            // Find sentence boundaries
-            var start = range.location
-            var end = range.location + range.length
+    @objc private func addSelectionToVocabulary(_ sender: NSMenuItem) {
+        guard let pair = sender.representedObject as? [String], pair.count == 2 else { return }
+        onWordSelected?(pair[0], pair[1])
+    }
 
-            // Search backward for sentence start
-            while start > 0 {
-                let char = nsText.character(at: start - 1)
-                let scalar = UnicodeScalar(char)
-                if let scalar = scalar, CharacterSet(charactersIn: ".!?").contains(scalar) {
-                    break
-                }
-                start -= 1
-            }
+    /// Extract the sentence surrounding the selection, used as lookup context.
+    private func extractContext(at range: NSRange) -> String {
+        let nsText = string as NSString
 
-            // Search forward for sentence end
-            while end < nsText.length {
-                let char = nsText.character(at: end)
-                let scalar = UnicodeScalar(char)
-                if let scalar = scalar, CharacterSet(charactersIn: ".!?").contains(scalar) {
-                    end += 1
-                    break
-                }
-                end += 1
-            }
+        var start = range.location
+        var end = range.location + range.length
 
-            // Extract context with some padding
-            let contextStart = max(0, start)
-            let contextEnd = min(nsText.length, end)
-            let contextRange = NSRange(location: contextStart, length: contextEnd - contextStart)
-
-            return nsText.substring(with: contextRange).trimmingCharacters(in: .whitespacesAndNewlines)
+        while start > 0 {
+            let scalar = UnicodeScalar(nsText.character(at: start - 1))
+            if let scalar = scalar, CharacterSet(charactersIn: ".!?").contains(scalar) { break }
+            start -= 1
         }
+
+        while end < nsText.length {
+            let scalar = UnicodeScalar(nsText.character(at: end))
+            end += 1
+            if let scalar = scalar, CharacterSet(charactersIn: ".!?").contains(scalar) { break }
+        }
+
+        let contextRange = NSRange(location: max(0, start), length: min(nsText.length, end) - max(0, start))
+        return nsText.substring(with: contextRange).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
-/// Custom NSTextView with vocabulary support
-class VocabularyTextView: NSTextView {
-    override func menu(for event: NSEvent) -> NSMenu? {
-        // Let the delegate handle menu creation
-        return super.menu(for: event)
-    }
-}
-
-/// View for displaying transcription text with vocabulary lookup capability
+/// View for displaying text with vocabulary lookup capability (right-click a
+/// word → add to vocabulary). Works for the original transcription, the editable
+/// refined text, and formatted teacher notes.
 struct TranscriptionTextView: View {
     let text: String
-    @State private var selectedWord: String?
-    @State private var selectedContext: String?
-    @State private var showAddWordSheet = false
-    @State private var isLookingUp = false
-    @State private var lookupResult: WordExplanation?
-    @State private var lookupError: String?
+    /// When set, the text is editable and changes flow back through this binding.
+    var editableText: Binding<String>? = nil
+    /// Optional rich rendering (read-only) — used for formatted teacher notes.
+    var attributed: NSAttributedString? = nil
+    /// When true the view grows to fit its content instead of using `minHeight`.
+    var selfSizing: Bool = false
+    var minHeight: CGFloat = 60
+
+    /// Identifiable carrier so the sheet is driven by `item:` (never presents
+    /// with an empty/nil word, which `isPresented:` + `if let` is prone to).
+    private struct PendingWord: Identifiable {
+        let id = UUID()
+        let word: String
+        let context: String
+    }
+
+    @State private var pendingWord: PendingWord?
+    @State private var measuredHeight: CGFloat = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SelectableTextView(text: text) { word, context in
-                selectedWord = word
-                selectedContext = context
-                showAddWordSheet = true
-            }
-            .frame(minHeight: 60)
+        SelectableTextView(
+            text: text,
+            editableText: editableText,
+            attributed: attributed,
+            dynamicHeight: selfSizing ? $measuredHeight : nil
+        ) { word, context in
+            pendingWord = PendingWord(word: word, context: context)
         }
-        .sheet(isPresented: $showAddWordSheet) {
-            if let word = selectedWord {
-                AddWordFromTranscriptionSheet(
-                    word: word,
-                    context: selectedContext ?? "",
-                    onDismiss: {
-                        showAddWordSheet = false
-                        selectedWord = nil
-                        selectedContext = nil
-                    }
-                )
-            }
+        .frame(height: selfSizing ? max(minHeight, measuredHeight) : nil)
+        .frame(minHeight: selfSizing ? nil : minHeight)
+        .sheet(item: $pendingWord) { pending in
+            AddWordFromTranscriptionSheet(
+                word: pending.word,
+                context: pending.context,
+                onDismiss: { pendingWord = nil }
+            )
         }
     }
 }

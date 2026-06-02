@@ -12,7 +12,9 @@ import SwiftUI
 
 @MainActor
 class RecordingViewModel: ObservableObject {
-    @Published var state: TranscriptionState = .idle
+    @Published var state: TranscriptionState = .idle {
+        didSet { AppStatus.shared.update(from: state) }
+    }
     @Published var duration: TimeInterval = 0
     @Published var pulseAnimation = false
     @Published var isPaused = false
@@ -26,6 +28,9 @@ class RecordingViewModel: ObservableObject {
     private let settings = Settings.shared
 
     private var timer: Timer?
+
+    /// In-flight transcription/optimization task, cancelled on reset/cancel.
+    private var processingTask: Task<Void, Never>?
 
     var formattedDuration: String {
         let minutes = Int(duration) / 60
@@ -94,6 +99,9 @@ class RecordingViewModel: ObservableObject {
     }
 
     func startRecording() {
+        // Prevent a double-start: only begin from idle (matches the shortcut handler).
+        guard case .idle = state else { return }
+
         guard permissionManager.isMicrophonePermissionGranted else {
             state = .error("error.microphone_needed".localized)
             return
@@ -103,23 +111,31 @@ class RecordingViewModel: ObservableObject {
         duration = 0
         isPaused = false
 
+        // Invalidate any existing timer before assigning a new one.
+        timer?.invalidate()
+        timer = nil
+
         // Start recording
         audioRecorder.startRecording { [weak self] success in
-            if !success {
-                self?.state = .error("error.recording_failed".localized)
-            }
-        }
-
-        // Start timer
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self, !self.isPaused else { return }
-                self.duration += 0.1
+            guard let self = self else { return }
+            if success {
+                // Start the duration timer only on the success path so a failed
+                // start never leaves a running timer.
+                self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self = self, !self.isPaused else { return }
+                        self.duration += 0.1
+                    }
+                }
+            } else {
+                self.state = .error("error.recording_failed".localized)
             }
         }
     }
 
     func pauseRecording() {
+        guard case .recording = state else { return }
+
         isPaused.toggle()
         if isPaused {
             audioRecorder.pauseRecording()
@@ -150,22 +166,20 @@ class RecordingViewModel: ObservableObject {
     private func transcribe(audioURL: URL) {
         state = .transcribing
 
-        Task {
+        processingTask = Task {
             do {
                 // Use new method that returns metadata
                 let metadata = try await sttService.transcribeWithMetadata(audioURL: audioURL)
-                await MainActor.run {
-                    self.optimize(
-                        originalText: metadata.text,
-                        audioURL: audioURL,
-                        transcriptionProvider: metadata.provider,
-                        transcriptionModel: metadata.model
-                    )
-                }
+                guard !Task.isCancelled else { return }
+                self.optimize(
+                    originalText: metadata.text,
+                    audioURL: audioURL,
+                    transcriptionProvider: metadata.provider,
+                    transcriptionModel: metadata.model
+                )
             } catch {
-                await MainActor.run {
-                    self.state = .error(String(format: "error.transcription_failed".localized, error.localizedDescription))
-                }
+                guard !Task.isCancelled else { return }
+                self.state = .error(String(format: "error.transcription_failed".localized, error.localizedDescription))
             }
         }
     }
@@ -178,7 +192,11 @@ class RecordingViewModel: ObservableObject {
     ) {
         state = .optimizing
 
-        Task {
+        // Snapshot the duration before any awaits so the value persisted to
+        // storage matches the recording that just finished.
+        let recordingDuration = duration
+
+        processingTask = Task {
             do {
                 let refinedText: String
                 let teacherExplanation: String?
@@ -204,7 +222,7 @@ class RecordingViewModel: ObservableObject {
                 let result = TranscriptionResult(
                     originalText: originalText,
                     optimizedText: refinedText,
-                    duration: duration,
+                    duration: recordingDuration,
                     audioFilePath: audioURL.path,
                     transcriptionProvider: transcriptionProvider,
                     transcriptionModel: transcriptionModel,
@@ -215,77 +233,83 @@ class RecordingViewModel: ObservableObject {
                     vocabularySuggestions: vocabularySuggestions
                 )
 
-                // Save to server (don't block UI if this fails)
-                // Only save if user is authenticated
-                if self.isUserAuthenticated() {
-                    if let explanation = teacherExplanation {
-                        Task.detached(priority: .background) {
-                            do {
-                                _ = try await self.storageService.saveInteractionWithExplanation(
-                                    transcription: originalText,
-                                    refinedText: refinedText,
-                                    teacherExplanation: explanation,
-                                    audioDuration: self.duration
-                                )
-                            } catch {
-                                Logger.error("Sync failed", category: .storage, error: error)
-                            }
+                // Always store the recording locally (don't block UI if this fails).
+                // InteractionStorageService persists every recording to local storage
+                // and only syncs to the remote when authenticated and the duration
+                // exceeds the auto-sync threshold (default 30s).
+                if let explanation = teacherExplanation {
+                    let suggestionsToPersist = vocabularySuggestions
+                    Task {
+                        do {
+                            _ = try await self.storageService.saveInteractionWithExplanation(
+                                transcription: originalText,
+                                refinedText: refinedText,
+                                teacherExplanation: explanation,
+                                audioDuration: recordingDuration,
+                                vocabularySuggestions: suggestionsToPersist
+                            )
+                        } catch {
+                            Logger.error("Local save failed", category: .storage, error: error)
                         }
-                    } else {
-                        Task.detached(priority: .background) {
-                            do {
-                                _ = try await self.storageService.saveInteraction(
-                                    transcription: originalText,
-                                    refinedText: refinedText,
-                                    audioDuration: self.duration
-                                )
-                            } catch {
-                                Logger.error("Sync failed", category: .storage, error: error)
-                            }
+                    }
+                } else {
+                    Task {
+                        do {
+                            _ = try await self.storageService.saveInteraction(
+                                transcription: originalText,
+                                refinedText: refinedText,
+                                audioDuration: recordingDuration
+                            )
+                        } catch {
+                            Logger.error("Local save failed", category: .storage, error: error)
                         }
                     }
                 }
 
-                await MainActor.run {
-                    self.result = result
-                    self.state = .completed
-                }
+                guard !Task.isCancelled else { return }
+                self.result = result
+                self.state = .completed
             } catch {
                 // If optimization fails, save transcription only
                 let result = TranscriptionResult(
                     originalText: originalText,
                     optimizedText: nil,
-                    duration: duration,
+                    duration: recordingDuration,
                     audioFilePath: audioURL.path,
                     transcriptionProvider: transcriptionProvider,
                     transcriptionModel: transcriptionModel
                 )
 
-                // Save transcription-only to server
-                // Only save if user is authenticated
-                if self.isUserAuthenticated() {
-                    Task.detached(priority: .background) {
-                        do {
-                            _ = try await self.storageService.saveInteraction(
-                                transcription: originalText,
-                                refinedText: nil,
-                                audioDuration: self.duration
-                            )
-                        } catch {
-                            Logger.error("Sync failed", category: .storage, error: error)
-                        }
+                // Always store the transcription-only recording locally.
+                // Remote sync is handled conditionally inside the storage service.
+                Task {
+                    do {
+                        _ = try await self.storageService.saveInteraction(
+                            transcription: originalText,
+                            refinedText: nil,
+                            audioDuration: recordingDuration
+                        )
+                    } catch {
+                        Logger.error("Local save failed", category: .storage, error: error)
                     }
                 }
 
-                await MainActor.run {
-                    self.result = result
-                    self.state = .completed
-                }
+                guard !Task.isCancelled else { return }
+                self.result = result
+                self.state = .completed
             }
         }
     }
 
     func reset() {
+        // Cancel any in-flight transcription/optimization so it can't overwrite
+        // state after a reset.
+        processingTask?.cancel()
+        processingTask = nil
+
+        timer?.invalidate()
+        timer = nil
+
         state = .idle
         duration = 0
         pulseAnimation = false
@@ -294,10 +318,6 @@ class RecordingViewModel: ObservableObject {
     }
 
     // MARK: - Helper Methods
-
-    private func isUserAuthenticated() -> Bool {
-        return UserDefaults.standard.string(forKey: "supabase_access_token") != nil
-    }
 
     /// Check which suggested words already exist in the user's vocabulary
     /// - Parameter suggestions: Array of vocabulary suggestions from LLM

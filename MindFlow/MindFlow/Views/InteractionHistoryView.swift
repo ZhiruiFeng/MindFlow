@@ -10,6 +10,7 @@ import SwiftUI
 struct InteractionHistoryView: View {
     @StateObject private var viewModel = InteractionHistoryViewModel()
     @EnvironmentObject var authService: SupabaseAuthService
+    @State private var selectedDetail: InteractionDetail?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -24,6 +25,9 @@ struct InteractionHistoryView: View {
             } else {
                 contentView
             }
+        }
+        .sheet(item: $selectedDetail) { detail in
+            InteractionDetailView(detail: detail)
         }
     }
 
@@ -73,8 +77,13 @@ struct InteractionHistoryView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.interactions) { interaction in
-                    InteractionRowView(interaction: interaction)
-                        .padding(.horizontal)
+                    InteractionRowView(
+                        interaction: interaction,
+                        onOpenDetail: {
+                            selectedDetail = InteractionDetail(remote: interaction)
+                        }
+                    )
+                    .padding(.horizontal)
                 }
 
                 // Load More Button
@@ -189,6 +198,7 @@ struct InteractionHistoryView: View {
 
 struct InteractionRowView: View {
     let interaction: InteractionRecord
+    let onOpenDetail: () -> Void
     @State private var isOriginalExpanded = false
     @State private var isRefinedExpanded = false
     @State private var isTeacherNoteExpanded = false
@@ -350,12 +360,26 @@ struct InteractionRowView: View {
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
+
+                Spacer()
+
+                Button(action: onOpenDetail) {
+                    HStack(spacing: 4) {
+                        Text("Details")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.caption2)
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding()
         .background(Color(NSColor.controlBackgroundColor))
         .cornerRadius(10)
         .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+        .contentShape(Rectangle())
+        .onTapGesture { onOpenDetail() }
     }
 
     private var formattedDate: String {

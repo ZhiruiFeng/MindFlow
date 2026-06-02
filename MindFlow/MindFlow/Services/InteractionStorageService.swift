@@ -9,6 +9,11 @@ import Foundation
 
 /// Coordinates the storage of MindFlow interactions
 /// Implements local-first storage with conditional backend sync
+///
+/// Runs on the main actor so its `async` methods touch the main-queue
+/// Core Data context (and its managed objects) without crossing threads.
+/// `await apiClient...` network calls simply suspend the main actor, which is safe.
+@MainActor
 class InteractionStorageService {
     static let shared = InteractionStorageService()
 
@@ -20,8 +25,8 @@ class InteractionStorageService {
     }
 
     private var isAuthenticated: Bool {
-        // Check if user has valid Supabase session (stored in UserDefaults)
-        return UserDefaults.standard.string(forKey: "supabase_access_token") != nil
+        // Check if user has valid Supabase session (access token stored in Keychain)
+        return KeychainManager.shared.get(key: SupabaseKeychainKeys.accessToken) != nil
     }
 
     private init() {
@@ -78,7 +83,8 @@ class InteractionStorageService {
         transcription: String,
         refinedText: String,
         teacherExplanation: String,
-        audioDuration: Double?
+        audioDuration: Double?,
+        vocabularySuggestions: [VocabularySuggestion]? = nil
     ) async throws -> LocalInteraction {
         // Always save locally first
         let metadata = InteractionMetadata(
@@ -94,7 +100,8 @@ class InteractionStorageService {
             refinedText: refinedText,
             teacherExplanation: teacherExplanation,
             audioDuration: audioDuration,
-            metadata: metadata
+            metadata: metadata,
+            vocabularySuggestions: vocabularySuggestions
         )
 
         // Conditionally sync to backend

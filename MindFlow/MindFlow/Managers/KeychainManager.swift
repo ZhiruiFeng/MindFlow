@@ -7,13 +7,15 @@
 
 import Foundation
 import Security
+import os.log
 
 /// Keychain Manager - Securely stores sensitive information
 class KeychainManager {
     static let shared = KeychainManager()
-    
+
     private let service = "com.mindflow.app"
-    
+    private let log = OSLog(subsystem: "com.mindflow.app", category: "Keychain")
+
     private init() {}
     
     // MARK: - Public Methods
@@ -28,28 +30,48 @@ class KeychainManager {
         guard let data = value.data(using: .utf8) else {
             return false
         }
-        
-        // Delete existing item if present
-        delete(key: key)
 
-        // Create query dictionary
-        let query: [String: Any] = [
+        // Attempt to add the item atomically.
+        let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
-        
-        let status = SecItemAdd(query as CFDictionary, nil)
-        
-        if status == errSecSuccess {
-            print("✅ Keychain: Successfully saved item")
+
+        let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+
+        if addStatus == errSecSuccess {
+            os_log("Successfully saved item", log: log, type: .debug)
             return true
-        } else {
-            print("❌ Keychain: Failed to save item - status code: \(status)")
-            return false
         }
+
+        // Item already exists: update its value in place (atomic upsert).
+        if addStatus == errSecDuplicateItem {
+            let matchQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: key
+            ]
+            let attributesToUpdate: [String: Any] = [
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            ]
+
+            let updateStatus = SecItemUpdate(matchQuery as CFDictionary, attributesToUpdate as CFDictionary)
+
+            if updateStatus == errSecSuccess {
+                os_log("Successfully updated item", log: log, type: .debug)
+                return true
+            } else {
+                os_log("Failed to update item - status code: %{public}d", log: log, type: .error, updateStatus)
+                return false
+            }
+        }
+
+        os_log("Failed to save item - status code: %{public}d", log: log, type: .error, addStatus)
+        return false
     }
     
     /// Retrieves data from Keychain

@@ -14,6 +14,10 @@ class LocalizationManager: ObservableObject {
     @Published private(set) var currentLanguage: String?
     private var bundle: Bundle?
 
+    /// Guards `bundle`/`currentLanguage` so they can be read off the main thread
+    /// (e.g. `String.localized` is called app-wide) while writes happen elsewhere.
+    private let lock = NSLock()
+
     private init() {
         // Initialize with system language
         self.currentLanguage = nil
@@ -23,6 +27,7 @@ class LocalizationManager: ObservableObject {
     /// Set the app language
     /// - Parameter language: The language to use
     func setLanguage(_ language: AppLanguage) {
+        lock.lock()
         if let languageCode = language.languageCode {
             // Use specific language
             if let path = Bundle.main.path(forResource: languageCode, ofType: "lproj"),
@@ -41,6 +46,7 @@ class LocalizationManager: ObservableObject {
             self.currentLanguage = nil
             print("✅ Language set to system default")
         }
+        lock.unlock()
 
         // Trigger UI refresh
         objectWillChange.send()
@@ -52,6 +58,9 @@ class LocalizationManager: ObservableObject {
     ///   - comment: Optional comment for context
     /// - Returns: Localized string
     func string(forKey key: String, comment: String = "") -> String {
+        lock.lock()
+        let bundle = self.bundle
+        lock.unlock()
         return bundle?.localizedString(forKey: key, value: nil, table: nil) ?? key
     }
 
@@ -61,6 +70,9 @@ class LocalizationManager: ObservableObject {
     ///   - arguments: Format arguments
     /// - Returns: Formatted localized string
     func string(forKey key: String, arguments: CVarArg...) -> String {
+        lock.lock()
+        let bundle = self.bundle
+        lock.unlock()
         let format = bundle?.localizedString(forKey: key, value: nil, table: nil) ?? key
         return String(format: format, arguments: arguments)
     }

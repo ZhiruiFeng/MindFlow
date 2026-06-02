@@ -26,13 +26,20 @@ class PermissionManager: ObservableObject {
     
     /// Check microphone permission status
     func checkMicrophonePermission() {
+        let granted: Bool
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
-            isMicrophonePermissionGranted = true
+            granted = true
         case .notDetermined, .denied, .restricted:
-            isMicrophonePermissionGranted = false
+            granted = false
         @unknown default:
-            isMicrophonePermissionGranted = false
+            granted = false
+        }
+        // Mutate the @Published property on the main thread to avoid a data race.
+        if Thread.isMainThread {
+            isMicrophonePermissionGranted = granted
+        } else {
+            DispatchQueue.main.async { self.isMicrophonePermissionGranted = granted }
         }
     }
     
@@ -50,7 +57,13 @@ class PermissionManager: ObservableObject {
     /// Check accessibility permission status
     func checkAccessibilityPermission() {
         let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
-        isAccessibilityPermissionGranted = AXIsProcessTrustedWithOptions(options)
+        let granted = AXIsProcessTrustedWithOptions(options)
+        // Mutate the @Published property on the main thread to avoid a data race.
+        if Thread.isMainThread {
+            isAccessibilityPermissionGranted = granted
+        } else {
+            DispatchQueue.main.async { self.isAccessibilityPermissionGranted = granted }
+        }
     }
     
     /// Request accessibility permission (will open System Settings)
@@ -82,9 +95,16 @@ class PermissionManager: ObservableObject {
     
     /// Check all required permissions
     func checkAllPermissions() -> (microphone: Bool, accessibility: Bool) {
+        // Refresh the @Published properties (these hop to the main thread).
         checkMicrophonePermission()
         checkAccessibilityPermission()
-        return (isMicrophonePermissionGranted, isAccessibilityPermissionGranted)
+
+        // Compute the current values directly so the return value is accurate
+        // even when the published-property updates are dispatched asynchronously.
+        let micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        let axOptions: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: false]
+        let axGranted = AXIsProcessTrustedWithOptions(axOptions)
+        return (micGranted, axGranted)
     }
 }
 

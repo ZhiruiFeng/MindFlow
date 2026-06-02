@@ -43,18 +43,34 @@ class HotKeyManager {
         eventType.eventClass = OSType(kEventClassKeyboard)
         eventType.eventKind = OSType(kEventHotKeyPressed)
 
-        // Install event handler
-        InstallEventHandler(
+        // Install event handler. Pass `self` as userData so the C trampoline can
+        // recover the exact instance instead of hard-coding `.shared`.
+        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
+        let installStatus = InstallEventHandler(
             GetApplicationEventTarget(),
-            { (nextHandler, theEvent, userData) -> OSStatus in
-                HotKeyManager.shared.handleHotKeyEvent()
+            { (_, _, userData) -> OSStatus in
+                if let userData = userData {
+                    let manager = Unmanaged<HotKeyManager>.fromOpaque(userData).takeUnretainedValue()
+                    manager.handleHotKeyEvent()
+                } else {
+                    // Fallback to the shared instance if userData is unexpectedly nil.
+                    HotKeyManager.shared.handleHotKeyEvent()
+                }
                 return noErr
             },
             1,
             &eventType,
-            nil,
+            selfPtr,
             &eventHandler
         )
+
+        guard installStatus == noErr else {
+            Logger.error("Global hotkey: InstallEventHandler failed: \(installStatus)", category: .general)
+            // Clean up any partially-installed state.
+            eventHandler = nil
+            hotKeyCallback = nil
+            return
+        }
 
         // Register hotkey
         let status = RegisterEventHotKey(
@@ -65,11 +81,19 @@ class HotKeyManager {
             0,
             &hotKeyRef
         )
-        
+
         if status == noErr {
-            print("✅ Global hotkey registered successfully: keyCode=\(keyCode), modifiers=\(modifiers)")
+            Logger.info("Global hotkey registered successfully: keyCode=\(keyCode), modifiers=\(modifiers)", category: .general)
         } else {
-            print("❌ Global hotkey registration failed: \(status)")
+            Logger.error("Global hotkey registration failed: \(status)", category: .general)
+            // Roll back the installed event handler so we don't leave a
+            // half-installed state.
+            if let handler = eventHandler {
+                RemoveEventHandler(handler)
+                eventHandler = nil
+            }
+            hotKeyRef = nil
+            hotKeyCallback = nil
         }
     }
     
@@ -78,7 +102,7 @@ class HotKeyManager {
         if let ref = hotKeyRef {
             UnregisterEventHotKey(ref)
             hotKeyRef = nil
-            print("✅ Global hotkey unregistered")
+            Logger.info("Global hotkey unregistered", category: .general)
         }
         
         if let handler = eventHandler {
@@ -92,7 +116,7 @@ class HotKeyManager {
     // MARK: - Event Handler
     
     private func handleHotKeyEvent() {
-        print("🔥 Hotkey triggered")
+        Logger.debug("Hotkey triggered", category: .general)
         DispatchQueue.main.async {
             self.hotKeyCallback?()
         }

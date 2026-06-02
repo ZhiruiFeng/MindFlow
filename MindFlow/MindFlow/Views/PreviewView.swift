@@ -15,8 +15,10 @@ struct PreviewView: View {
     @State private var selectedOptimizationLevel: OptimizationLevel
     @State private var isReoptimizing = false
     @State private var currentOptimizedText: String
+    @State private var currentOptimizationModel: String?
     @State private var showCopiedAlert = false
     @State private var showPastedAlert = false
+    @State private var reoptimizeErrorMessage: String?
     @State private var expandedSuggestion: VocabularySuggestion? = nil
 
     init(result: Binding<TranscriptionResult?>, viewModel: RecordingViewModel) {
@@ -24,6 +26,15 @@ struct PreviewView: View {
         self.viewModel = viewModel
         _selectedOptimizationLevel = State(initialValue: Settings.shared.optimizationLevel)
         _currentOptimizedText = State(initialValue: result.wrappedValue?.optimizedText ?? "")
+        _currentOptimizationModel = State(initialValue: result.wrappedValue?.optimizationModel)
+    }
+
+    /// Friendly label for the model that produced the currently displayed optimization.
+    /// Falls back to the model selected in Settings when the result has no recorded model.
+    private var optimizationModelLabel: String? {
+        let raw = currentOptimizationModel ?? settings.llmModel.rawValue
+        guard !raw.isEmpty else { return nil }
+        return LLMModel(rawValue: raw)?.displayName ?? raw
     }
     
     var body: some View {
@@ -68,11 +79,33 @@ struct PreviewView: View {
                             Text("preview.optimized".localized)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
-                            
+
+                            Text("Right-click word to add to vocabulary")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+
                             if isReoptimizing {
                                 ProgressView()
                                     .scaleEffect(0.7)
                                     .padding(.leading, 4)
+                            }
+
+                            Spacer()
+
+                            // Show which model produced the optimization
+                            if let modelLabel = optimizationModelLabel {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "cpu")
+                                        .font(.caption2)
+                                    Text(modelLabel)
+                                        .font(.caption2)
+                                }
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.15))
+                                .cornerRadius(4)
+                                .help("preview.optimization_model_help".localized)
                             }
                         }
                         
@@ -86,11 +119,13 @@ struct PreviewView: View {
                                 .background(Color.secondary.opacity(0.1))
                                 .cornerRadius(8)
                         } else {
-                            TextEditor(text: $currentOptimizedText)
-                                .frame(height: 80)
-                                .font(.body)
-                                .background(Color.green.opacity(0.1))
-                                .cornerRadius(8)
+                            TranscriptionTextView(
+                                text: currentOptimizedText,
+                                editableText: $currentOptimizedText
+                            )
+                            .frame(height: 80)
+                            .background(Color.green.opacity(0.1))
+                            .cornerRadius(8)
                         }
                     }
                     
@@ -115,11 +150,16 @@ struct PreviewView: View {
                                 }
                             }
 
-                            FormattedTeacherNoteView(text: teacherNote)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.yellow.opacity(0.1))
-                                .cornerRadius(8)
+                            TranscriptionTextView(
+                                text: teacherNote,
+                                attributed: teacherNoteAttributedString(teacherNote),
+                                selfSizing: true,
+                                minHeight: 40
+                            )
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.yellow.opacity(0.1))
+                            .cornerRadius(8)
                         }
                     }
 
@@ -153,7 +193,8 @@ struct PreviewView: View {
                         }
                         .pickerStyle(.segmented)
                         .onChange(of: selectedOptimizationLevel) { _ in
-                            // Prompt user to re-optimize when level changes
+                            // Re-optimize so changing the level actually takes effect.
+                            reoptimize()
                         }
                     }
                 }
@@ -230,6 +271,14 @@ struct PreviewView: View {
                     .padding(.horizontal)
                     .transition(.opacity)
             }
+
+            if let errorMessage = reoptimizeErrorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.horizontal)
+                    .transition(.opacity)
+            }
         }
         .sheet(item: $expandedSuggestion) { suggestion in
             VocabularySuggestionDetailView(
@@ -268,22 +317,27 @@ struct PreviewView: View {
         guard let originalText = result?.originalText, !originalText.isEmpty else { return }
         
         isReoptimizing = true
-        
+        reoptimizeErrorMessage = nil
+
         Task {
             do {
                 let optimizedText = try await LLMService.shared.optimizeText(
                     originalText,
                     level: selectedOptimizationLevel
                 )
-                
+
                 await MainActor.run {
                     self.currentOptimizedText = optimizedText
+                    self.currentOptimizationModel = self.settings.llmModel.rawValue
                     self.isReoptimizing = false
                 }
             } catch {
                 await MainActor.run {
                     self.isReoptimizing = false
-                    // TODO: Show error message
+                    self.reoptimizeErrorMessage = error.localizedDescription
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        self.reoptimizeErrorMessage = nil
+                    }
                 }
             }
         }

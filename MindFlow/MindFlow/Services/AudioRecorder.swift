@@ -9,12 +9,17 @@ import Foundation
 import AVFoundation
 
 /// Audio recording service
+@MainActor
 class AudioRecorder: NSObject, ObservableObject {
     static let shared = AudioRecorder()
-    
+
     private var audioRecorder: AVAudioRecorder?
     private var audioURL: URL?
-    
+
+    /// Completion stashed from `stopRecording`, invoked once the file is finalized
+    /// by the delegate callback.
+    private var stopCompletion: ((URL?) -> Void)?
+
     @Published var isRecording = false
     @Published var isPaused = false
     
@@ -71,37 +76,43 @@ class AudioRecorder: NSObject, ObservableObject {
     
     /// Pause recording
     func pauseRecording() {
-        guard isRecording else { return }
-        
-        audioRecorder?.pause()
+        guard isRecording, let recorder = audioRecorder else { return }
+
+        recorder.pause()
         isPaused = true
         print("⏸ 录音已暂停")
     }
-    
+
     /// Resume recording
     func resumeRecording() {
-        guard isRecording && isPaused else { return }
-        
-        audioRecorder?.record()
-        isPaused = false
-        print("▶️ 录音已继续")
+        guard isRecording && isPaused, let recorder = audioRecorder else { return }
+
+        let success = recorder.record()
+        if success {
+            isPaused = false
+            print("▶️ 录音已继续")
+        } else {
+            print("❌ 录音继续失败")
+        }
     }
-    
+
     /// Stop recording
+    ///
+    /// The completion is invoked only after the file has been finalized via
+    /// `audioRecorderDidFinishRecording(_:successfully:)`, passing the URL on
+    /// success and `nil` on failure (so truncated files aren't handed to STT).
     func stopRecording(completion: @escaping (URL?) -> Void) {
-        guard isRecording else {
+        guard isRecording, let recorder = audioRecorder else {
             completion(nil)
             return
         }
 
-        audioRecorder?.stop()
+        stopCompletion = completion
+        recorder.stop()
         isRecording = false
         isPaused = false
 
         print("⏹ 录音已停止")
-
-        // Return recording file URL
-        completion(audioURL)
     }
     
     /// Cancel recording
@@ -153,24 +164,39 @@ class AudioRecorder: NSObject, ObservableObject {
     }
     
     deinit {
-        cleanup()
+        // `cleanup()` is @MainActor-isolated and cannot be invoked from a
+        // nonisolated deinit. `AudioRecorder` is a process-lifetime singleton
+        // (`shared`), so its deinit never runs in practice; call `cleanup()`
+        // explicitly from the main actor when teardown is needed.
     }
 }
 
 // MARK: - AVAudioRecorderDelegate
 
 extension AudioRecorder: AVAudioRecorderDelegate {
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        if flag {
-            print("✅ 录音完成: \(recorder.url.lastPathComponent)")
-        } else {
-            print("❌ 录音失败")
+    // These delegate callbacks may arrive off the main actor, so hop back before
+    // touching state or invoking the stashed completion.
+    nonisolated func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        Task { @MainActor in
+            if flag {
+                print("✅ 录音完成: \(recorder.url.lastPathComponent)")
+            } else {
+                print("❌ 录音失败")
+            }
+
+            // Hand the URL to the stashed completion only on success; pass `nil`
+            // for a failed (potentially truncated) file so STT doesn't receive it.
+            let completion = self.stopCompletion
+            self.stopCompletion = nil
+            completion?(flag ? self.audioURL : nil)
         }
     }
-    
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
-        if let error = error {
-            print("❌ 录音编码错误: \(error.localizedDescription)")
+
+    nonisolated func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
+        Task { @MainActor in
+            if let error = error {
+                print("❌ 录音编码错误: \(error.localizedDescription)")
+            }
         }
     }
 }

@@ -197,7 +197,9 @@ class ReviewViewModel: ObservableObject {
 
     /// Complete the current session
     func completeSession() {
-        guard let session = session else { return }
+        // Guard against double-completion: `moveToNext` auto-completes at the end
+        // and a view may also call this directly.
+        guard isSessionActive, let session = session else { return }
 
         // Calculate duration
         if let startTime = sessionStartTime {
