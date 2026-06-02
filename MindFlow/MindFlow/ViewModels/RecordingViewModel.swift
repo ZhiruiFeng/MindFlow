@@ -202,22 +202,15 @@ class RecordingViewModel: ObservableObject {
                 let teacherExplanation: String?
                 var vocabularySuggestions: [VocabularySuggestion]?
 
-                // Check if teacher notes are enabled
-                if settings.enableTeacherNotes {
-                    // Use combined optimization method to get refined text, teacher explanation, and vocabulary suggestions
-                    let optimizationResult = try await llmService.optimizeTextWithExplanation(originalText)
-                    refinedText = optimizationResult.refinedText
-                    teacherExplanation = optimizationResult.teacherExplanation
-                    vocabularySuggestions = optimizationResult.vocabularySuggestions
+                // Always generate vocabulary suggestions so users get word
+                // recommendations regardless of the Teacher Notes setting. The
+                // toggle only controls whether the teacher explanation is shown.
+                let optimizationResult = try await llmService.optimizeTextWithExplanation(originalText)
+                refinedText = optimizationResult.refinedText
+                teacherExplanation = settings.enableTeacherNotes ? optimizationResult.teacherExplanation : nil
 
-                    // Check which words are already in vocabulary
-                    vocabularySuggestions = await checkExistingVocabulary(suggestions: optimizationResult.vocabularySuggestions)
-                } else {
-                    // Only optimize text, no teacher explanation or vocabulary suggestions
-                    refinedText = try await llmService.optimizeText(originalText)
-                    teacherExplanation = nil
-                    vocabularySuggestions = nil
-                }
+                // Flag suggestions that already exist in the user's vocabulary.
+                vocabularySuggestions = await checkExistingVocabulary(suggestions: optimizationResult.vocabularySuggestions)
 
                 let result = TranscriptionResult(
                     originalText: originalText,
@@ -237,14 +230,19 @@ class RecordingViewModel: ObservableObject {
                 // InteractionStorageService persists every recording to local storage
                 // and only syncs to the remote when authenticated and the duration
                 // exceeds the auto-sync threshold (default 30s).
-                if let explanation = teacherExplanation {
-                    let suggestionsToPersist = vocabularySuggestions
+                let explanationToPersist = teacherExplanation
+                let suggestionsToPersist = vocabularySuggestions
+                let hasSuggestions = !(suggestionsToPersist?.isEmpty ?? true)
+                if explanationToPersist != nil || hasSuggestions {
+                    // Persist via the explanation path whenever we have a teacher
+                    // note OR vocabulary suggestions, so recommendations survive on
+                    // the record detail page even when Teacher Notes is disabled.
                     Task {
                         do {
                             _ = try await self.storageService.saveInteractionWithExplanation(
                                 transcription: originalText,
                                 refinedText: refinedText,
-                                teacherExplanation: explanation,
+                                teacherExplanation: explanationToPersist ?? "",
                                 audioDuration: recordingDuration,
                                 vocabularySuggestions: suggestionsToPersist
                             )

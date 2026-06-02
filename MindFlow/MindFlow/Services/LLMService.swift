@@ -65,7 +65,7 @@ class LLMService {
         • [Specific point with before/after example or vocabulary suggestion]
 
         VOCABULARY_SUGGESTIONS:
-        [JSON array of 0-3 vocabulary suggestions]
+        [JSON array of 1-3 vocabulary suggestions]
 
         Teaching guidelines for TEACHER_NOTE:
         - Give specific, actionable feedback with examples (e.g., "Instead of 'very good', use 'excellent' or 'outstanding' for stronger impact")
@@ -76,16 +76,17 @@ class LLMService {
         - Focus on WHY a specific word or structure is better for the meaning
 
         Vocabulary suggestion guidelines:
-        - Select 0-3 words from the REFINED text that would benefit English language learners
+        - ALWAYS suggest 1-3 words that would benefit an English language learner. Only return an empty array [] in the rare case the text contains nothing but articles, pronouns, and basic function words.
+        - Prefer words from the REFINED text. If the refined text has no sophisticated words, you may instead suggest a more advanced alternative for one of its plainer words (e.g. for "view" suggest "discern"; for "test" suggest "evaluate") and use the original sentence as the sourceSentence.
         - Prioritize: uncommon but useful words, nuanced vocabulary, commonly confused words, eloquent alternatives
-        - Exclude: top 1000 most common English words, proper nouns (names/places), slang
+        - Exclude: proper nouns (names/places) and slang
         - For each word, provide a JSON object with these fields:
           - word: the vocabulary word
           - partOfSpeech: noun/verb/adjective/adverb/phrase
           - definition: brief definition (1-2 sentences)
           - reason: why this word is worth learning (max 50 words)
-          - sourceSentence: the exact sentence from the refined text where this word appears
-        - Output as a valid JSON array, or empty array [] if no good vocabulary candidates
+          - sourceSentence: the exact sentence from the refined text where this word appears (or the related sentence if suggesting an alternative)
+        - Output as a valid JSON array
         - Example: [{"word": "eloquent", "partOfSpeech": "adjective", "definition": "fluent or persuasive in speaking or writing", "reason": "More expressive than 'well-spoken'", "sourceSentence": "She gave an eloquent presentation."}]
 
         Important rules:
